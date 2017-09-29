@@ -1,0 +1,6 @@
+.separator |
+.import userTable Users
+.import itemTable Items
+update Items set Buy_Price = null where Buy_Price = 'NULL'
+.import bidTable Bids
+.import categoryTable Category
