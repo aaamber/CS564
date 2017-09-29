@@ -15,24 +15,24 @@ create table User(
 
 create table Item(
 	ItemID		bigint,
-	Name		string,
+	Name		string NOT NULL,
 	Buy_Price	double,
-	First_Bid	double,
-	Number_of_Bids	int,
-	Started		date,
-	Ends		date,
-	Currently	double,
-	Seller_ID	bigint,
-	Description	string,
+	First_Bid	double NOT NULL,
+	Number_of_Bids	int NOT NULL,
+	Started		date NOT NULL, 
+	Ends		date NOT NULL,
+	Currently	double NOT NULL,
+	Seller_ID	bigint NOT NULL,
+	Description	string NOT NULL,
 	PRIMARY KEY (ItemId),
 	FOREIGN KEY (Seller_ID) REFERENCES User(UserID)
 )
 
 create table Bids(
 	UserID		bigint,
-	Time		date,
-	Amount		double,
-	ItemID		bigint,
+	Time		date NOT NULL,
+	Amount		double NOT NULL,
+	ItemID		bigint NOT NULL,
 	PRIMARY KEY (UserID, Time, Amount, ItemID), --maybe can be reduce to 3
 	FOREIGN KEY (UserID) REFERENCES User(UserID),
 	FOREIGN KEY (ItemID) REFERENCES Item(ItemID)
