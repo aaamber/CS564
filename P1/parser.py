@@ -68,6 +68,16 @@ def transformDollar(money):
         return money
     return sub(r'[^\d.]', '', money)
 
+def escapeQuote(description):
+    count = 0
+    for i, c in enumerate(description):
+        if c == "\"":
+            count+=1
+            description = description[:(i+count)]+"\""+description[(i+count):]
+    description = "\""+description+"\""
+    return description
+    
+
 """
 Parses a single json file. Currently, there's a loop that iterates over each
 item in the data set. Your job is to extend this functionality to create all
@@ -78,42 +88,79 @@ def parseJson(json_file):
         items = loads(f.read())['Items'] # creates a Python dictionary of Items for the supplied json file
         
         #bids = items['Bids']
-        itemTable = open("itemTable.dat","w")
-        bidTable = open("bidTable.dat","w")
-        userTable = open("userTable.dat","w")
-        categoryTable = open("categoryTable.dat","w")
+        itemTable = open("itemTable.dat","a")
+        bidTable = open("bidTable.dat","a")
+        userTable = open("userTable.dat","a")
+        categoryTable = open("categoryTable.dat","a")
         userIDs = []
+        itemIDs = []
+        #print len(items)
+        bidCount = 0
         for item in items:
-            for key, value in item.iteritems():
-                if key == "Seller":
-                    #add to userTable only if the user doesn't exist
-                    if value['UserID'] not in userIDs:
-                        userIDs.append(value['UserID'])
-                        #print value['UserID']
-                        for sellerValue in value.itervalues():
-                            userTable.write(str(sellerValue)+"|")
-                        userTable.write(item["Location"] +"|"+item["Country"] +"\n")
-                elif key  == "Category":
-                    for category in value:
-                        categoryTable.write(str(item["ItemID"])+ "|" + category+"\n")
-                #skip empty Bids
-                elif key == "Bids" and value:
-                    for bid in value:
-                        for bidKey, bidValue in bid["Bid"].iteritems():
-                            if bidKey != "Bidder":
-                                bidTable.write(bidValue+"|")
-                        #add userID and itemID
-                        bidTable.write(str(bid["Bid"]["Bidder"]['UserID'])+"|"+str(item["ItemID"])+"\n")
-                elif key in {"Location", "Country", "Buy_price"}:
+            if item["ItemID"] not in itemIDs:
+                itemIDs.append(item["ItemID"])
+                for key, value in item.iteritems():
+                    if key == "Seller":
+                        #add to userTable only if the user doesn't exist
+                        if value['UserID'] not in userIDs:
+                            userIDs.append(value['UserID'])
+                            userTable.write(str(value["UserID"])+"|"+value["Rating"]+"|"+escapeQuote(item["Location"])
+                                            +"|"+escapeQuote(item["Country"]) +"\n")
+                    elif key  == "Category":
+                        for category in value:
+                            categoryTable.write(str(item["ItemID"])+ "|" + category+"\n")
+                    #skip empty Bids
+                    elif key == "Bids":
+                        if value: 
+                            bidCount += len(value)
+                            for bid in value:
+                                bidTime = transformDttm(bid["Bid"]["Time"])
+                                bidAmount = transformDollar(bid["Bid"]["Amount"])
+                                #add userID and itemID
+                                bidUserId = bid["Bid"]["Bidder"]['UserID']
+                                bidTable.write(bidUserId+"|"+str(item["ItemID"])
+                                               +"|"+bidTime+"|"+bidAmount+"\n")
+                                #add to user table
+                                if bidUserId not in userIDs:
+                                    if "Location" not in bid["Bid"]["Bidder"].keys():
+                                        location = "NULL"
+                                    else:
+                                        location = bid["Bid"]["Bidder"]["Location"]
+                                        location = escapeQuote(location)
+                                    if "Country" not in bid["Bid"]["Bidder"].keys():
+                                        country = "NULL"
+                                    else:
+                                        country = bid["Bid"]["Bidder"]["Country"]
+                                        country = escapeQuote(country)
+                                   
+                                    userTable.write(bidUserId+"|"+bid["Bid"]["Bidder"]["Rating"]+"|"+location+"|"+country+"\n")
+                    elif key in {"Location", "Country", "Buy_Price"}:
+                        pass
+                    else:
+                        if key in {"Currently", "First_Bid"}:
+                            value = transformDollar(value)
+                        if key in {"Started", "Ends"}:
+                            value = transformDttm(value)
+                        if isinstance(value, basestring):
+                            value = escapeQuote(value)
+                        '''
+                        if key == "Ends":
+                            value += "Ends"
+                        if key == "First_Bid":
+                            value += "First_Bid"
+                        if key == "Currently":
+                            value += "Currently"
+                        if key == "Number_of_Bids":
+                            value += "NumerBids"
+                        '''
+                        itemTable.write(str(value)+"|")
+                        
                     pass
+                # User_ID+Buy_price, last two columns
+                if "Buy_Price" not in item.keys():
+                    itemTable.write(str(item["Seller"]['UserID'])+"|NULL"+"\n")
                 else:
-                    itemTable.write(str(value)+"|")
-                pass
-            # User_ID+Buy_price, last two columns
-            if "Buy_Price" not in item.keys():
-                itemTable.write(str(item["Seller"]['UserID'])+"|NULL"+"\n")
-            else:
-                itemTable.write(str(item["Seller"]['UserID'])+"|"+item["Buy_Price"]+"\n")
+                    itemTable.write(str(item["Seller"]['UserID'])+"|"+transformDollar(item["Buy_Price"])+"\n")
             
             """
             TODO: traverse the items dictionary to extract information from the
@@ -121,6 +168,7 @@ def parseJson(json_file):
             the SQL tables based on your relation design
             """
             pass
+        #print bidCount
         itemTable.close()
         bidTable.close()
         userTable.close()
