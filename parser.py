@@ -68,6 +68,9 @@ def transformDollar(money):
         return money
     return sub(r'[^\d.]', '', money)
 
+def escapeQuote(description):
+    
+
 """
 Parses a single json file. Currently, there's a loop that iterates over each
 item in the data set. Your job is to extend this functionality to create all
@@ -107,8 +110,21 @@ def parseJson(json_file):
                                 bidTime = transformDttm(bid["Bid"]["Time"])
                                 bidAmount = transformDollar(bid["Bid"]["Amount"])
                                 #add userID and itemID
-                                bidTable.write(str(bid["Bid"]["Bidder"]['UserID'])+"|"+str(item["ItemID"])
+                                bidUserId = bid["Bid"]["Bidder"]['UserID']
+                                bidTable.write(bidUserId+"|"+str(item["ItemID"])
                                                +"|"+bidTime+"|"+bidAmount+"\n")
+                                #add to user table
+                                if bidUserId not in userIDs:
+                                    if "Location" not in bid["Bid"]["Bidder"].keys():
+                                        location = "NULL"
+                                    else:
+                                        location = bid["Bid"]["Bidder"]["Location"]
+                                    if "Country" not in bid["Bid"]["Bidder"].keys():
+                                        country = "NULL"
+                                    else:
+                                        country = bid["Bid"]["Bidder"]["Country"]
+                                   
+                                    userTable.write(bidUserId+"|"+bid["Bid"]["Bidder"]["Rating"]+"|"+location+"|"+country+"\n")
                     elif key in {"Location", "Country", "Buy_Price"}:
                         pass
                     else:
