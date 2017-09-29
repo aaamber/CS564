@@ -11,7 +11,7 @@ create table Users(
 	Location	VARCHAR,
 	Rating		INT,
 	PRIMARY KEY (UserID)
-) 
+); 
 
 create table Items(
 	ItemID		FLOAT,
@@ -26,7 +26,7 @@ create table Items(
 	Description	VARCHAR NOT NULL,
 	PRIMARY KEY (ItemId),
 	FOREIGN KEY (Seller_ID) REFERENCES Users(UserID)
-)
+);
 
 create table Bids(
 	UserID		FLOAT,
@@ -36,12 +36,12 @@ create table Bids(
 	PRIMARY KEY (UserID, Time, Amount, ItemID), --maybe can be reduce to 3
 	FOREIGN KEY (UserID) REFERENCES Users(UserID),
 	FOREIGN KEY (ItemID) REFERENCES Items(ItemID)
-)
+);
 
 create table Category(
 	Name		VARCHAR,
 	ItemID		FLOAT,
 	PRIMARY KEY (Name, ItemID),
 	FOREIGN KEY (ItemID) REFERENCES Items(ItemID)
-)
+);
 
