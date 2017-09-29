@@ -1,15 +1,15 @@
-drop table if exists Items;
-drop table if exists Users;
-drop table if exists Bids;
-drop table if exists Category;
+DROP TABLE IF EXISTS Items;
+DROP TABLE IF EXISTS Users;
+DROP TABLE IF EXISTS Bids;
+DROP TABLE IF EXISTS Category;
 
 --the correct create order should be users --> Items --> Bids --> Category since each of them are depended on each other
 
 create table Users(
-	UserID		FLOAT,
-	Country		VARCHAR,
-	Location	VARCHAR,
 	Rating		INT,
+	UserID		VARCHAR,
+	Location	VARCHAR,
+	Country		VARCHAR,
 	PRIMARY KEY (UserID)
 ); 
 
@@ -22,14 +22,14 @@ create table Items(
 	Started		DATE NOT NULL, 
 	Ends		DATE NOT NULL,
 	Currently	DOUBLE NOT NULL,
-	Seller_ID	FLOAT NOT NULL,
+	Seller_ID	VARCHAR NOT NULL,
 	Description	VARCHAR NOT NULL,
 	PRIMARY KEY (ItemId),
 	FOREIGN KEY (Seller_ID) REFERENCES Users(UserID)
 );
 
 create table Bids(
-	UserID		FLOAT,
+	UserID		VARCHAR,
 	Time		DATE NOT NULL,
 	Amount		VARCHAR NOT NULL,
 	ItemID		FLOAT NOT NULL,

@@ -1,14 +1,14 @@
 .separator |
 
-.import users.dat Users
-update Users set Country = null where Country = `NULL';
-update Users set Location = null where Location = `NULL';
-update Users set Rating = null where Rating = `NULL';
+.import userTable.dat Users
+update Users set Country = null where Country = 'NULL';
+update Users set Location = null where Location = 'NULL';
+update Users set Rating = null where Rating = 'NULL';
 
-.import items.dat Items
-update Items set Buy_Price = null where Buy_Price = `NULL';
+.import itemTable.dat Items
+update Items set Buy_Price = null where Buy_Price = 'NULL';
 
-.import bids.dat Bids
+.import bidTable.dat Bids
 
-.import category.dat Category
+.import categoryTable.dat Category
 
