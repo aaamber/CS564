@@ -14,7 +14,7 @@ create table Users(
 ); 
 
 create table Items(
-	ItemID		FLOAT,
+	ItemID		INT,
 	Ends		DATE NOT NULL,
 	First_Bid	DOUBLE NOT NULL,
 	Name		VARCHAR NOT NULL,
@@ -30,7 +30,7 @@ create table Items(
 
 create table Bids(
 	UserID		VARCHAR,
-	ItemID		FLOAT NOT NULL,
+	ItemID		INT NOT NULL,
 	Time		DATE NOT NULL,
 	Amount		VARCHAR NOT NULL,
 	PRIMARY KEY (UserID, Time, Amount, ItemID), --maybe can be reduce to 3
@@ -39,7 +39,7 @@ create table Bids(
 );
 
 create table Category(
-	ItemID		FLOAT,
+	ItemID		INT,
 	Name		VARCHAR,
 	PRIMARY KEY (Name, ItemID),
 	FOREIGN KEY (ItemID) REFERENCES Items(ItemID)
