@@ -58,49 +58,48 @@ BufMgr::~BufMgr() {
 void BufMgr::advanceClock()
 {
    //increment clockhand%bufs
-
    clockHand = (clockHand + 1)%bufs;
-   //cihange refbit = 0 if pin count = 0
 }
 
 void BufMgr::allocBuf(FrameId & frame) 
-{    
-    //throw exception if all frames are pinned
-    for(FrameId i = 0; i < numBufs; i++)
-    {
-       if (!bufDescTable[clockHand].valid)
-       {
-         
-         Set(, bufDescTable[clockHand].pageNo);
+{   
 
-       } else
-       {
-          if(bufDescTable[clockHand].refbit){
+    int count = 0;
+    while(count <= numBufs){
+        advanceClock();
+        if (!bufDescTable[clockHand].valid)
+        {
+            frame = bufDescTable[clockHand].frameNo;
+            return;
+        }
+        if(bufDescTable[clockHand].refbit)
+        {
             bufDescTable[clockHand].refbit = false;
-            advanceClock();
             continue;
-          }else{
-            if(bufDescTable[clockHand].pinCnt == 0){
-              if(bufDesTable[clockHand].dirty){
-                 writePage();
-                 hashtableUpdate();
-                 bufDesTableUpdate();
-                 //TODO update everything!
-
-              }else{
-                 Set();
-              }
-            }else{
-               advanceClock();
-            }
-          }
-       }
+        }
+        if(bufDescTable[clockHand].pinCnt == 0)
+        {
+            break;
+        }else
+        {
+            count++;
+        }
     }
-    //TODO throw exception
-    //if there is an unpinned frame/
-       //get the frame, check dirty first--> write to disk
-    //else
-       
+    if(count > numsBufs)
+    {
+        throw BUfferExceededException();
+    }
+
+    // write to disk if dirty
+    if(bufDescTable[clockHand].dirty)
+    {
+        bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+    }else
+    {
+        frame = bufDescTable[clockHand].frameNo;
+    }
+    //remove relevent hashtable entry
+    hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);   
 }
 
 	
@@ -108,6 +107,14 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
     //do lookup in hashtable and catch exception to handle case 1
     //else case 2
+    try
+    {
+        
+    }
+    catch (BufferExceededException e)
+    {
+        std::cerr << "BufferExceededException in readPage()" << "\n";
+    }
 }
 
 
@@ -125,6 +132,7 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
         }
     }
     catch (HashNotFoundException e){
+         std::cerr << "HashNotFoundException in unpinPage()" << "\n";
     }
 }
 
@@ -167,12 +175,22 @@ void BufMgr::flushFile(const File* file)
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
-    page = file.allocatePage();
+    //TODO call allocBuf first? need to delete the allocated page if failed?
+    page = file->allocatePage();
     pageNo = page.page_number();
-    FrameId *frame;
-    allocBuf(frame);
-    hashTable.insert(file, pageNo, frame);
-    Set(file, pageNo);
+    FrameId frameNo;
+    try
+    {
+        allocBuf(frameNo);
+        hashTable->insert(file, pageNo, frameNo);
+        Set(file, pageNo);
+        bufDescTable[frameNo].Set(file, pageNo);
+        bufPool[frameNo] = page;
+    }
+    catch(BufferExceededException e)
+    {
+        std::cerr << "BufferExceededException in allocPage()" << "\n";
+    }
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
