@@ -106,6 +106,7 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
     //do lookup in hashtable and catch exception to handle case 1
     //else case 2
+    //page = new Page();
     FrameId frame;
     try{
         hashTable->lookup(file, pageNo, frame);
@@ -113,18 +114,21 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
         bufDescTable[frame].refbit = true;
         //increase pin count
         bufDescTable[frame].pinCnt += 1;
-        *page = bufPool[frame];
+	std::cout << "DEBUG: buffer readPage 1\n";
+        page = &bufPool[frame];
     }catch(const HashNotFoundException& e){
         //if page not found in hash table
         //allocate buffer frame
         allocBuf(frame);
-        //readPage
-        *page = file->readPage(pageNo);
+        bufStats.diskreads++;
+	//readPage
+        bufPool[frame]= file->readPage(pageNo);
         //insert into hash table
-        hashTable->insert(file,pageNo,frame);
+
         //set page
         bufDescTable[frame].Set(file,pageNo);
-        bufPool[frame] = *page;
+        page=&bufPool[frame];	
+        hashTable->insert(file,pageNo,frame);
     }
     catch (BufferExceededException e)
     {
@@ -137,7 +141,6 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 {
     FrameId frameNo;
     //do nothing if throw exception
-    std::cout << "buffer unPinPage 1";
     try{
         hashTable->lookup(file, pageNo, frameNo);
         if (bufDescTable[frameNo].pinCnt == 0){
@@ -193,23 +196,21 @@ void BufMgr::flushFile(const File* file)
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
-    std::cout << "buffer allocPage 1\n";
     //TODO call allocBuf first? need to delete the allocated page if failed?
-    Page page1;
-    page1 = file->allocatePage();
-    page = &page1; 
-    std::cout << "buffer allocPage 2\n";
-    pageNo = page->page_number();
+   // page = new Page();
+   // *page = file->allocatePage();
+    //pageNo = page->page_number();
     FrameId frameNo;
     try
     {
         allocBuf(frameNo);
-        std::cout << "buffer allocPage 3\n";
+        bufPool[frameNo] = file->allocatePage();
+
+	page=&bufPool[frameNo]; 
+	pageNo = page->page_number();
+        
+	bufDescTable[frameNo].Set(file, pageNo);
         hashTable->insert(file, pageNo, frameNo);
-        bufDescTable[frameNo].Set(file, pageNo);
-        std::cout << "buffer allocPage 4\n";
-        bufPool[frameNo] = page1;
-        std::cout << "buffer allocPage 5\n";
     }
     catch(BufferExceededException e)
     {
