@@ -100,6 +100,8 @@ void BufMgr::allocBuf(FrameId & frame)
     }
     //remove relevent hashtable entry
     hashTable->remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);   
+    //clear the buffer for use (Test 5)
+    bufDescTable[clockHand].Clear();
 }
 
 	
@@ -197,25 +199,19 @@ void BufMgr::flushFile(const File* file)
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
     FrameId frameNo;
-    try
-    {
-    	//Allocate buffer frame
-	allocBuf(frameNo);
-	//create a new page at the frame in the buffer
-        bufPool[frameNo] = file->allocatePage();
-	//return a pointer to the frame
-	page=&bufPool[frameNo]; 
-	//set the pageNo 
-	pageNo = page->page_number();
-        //set the frame in the buffer
-	bufDescTable[frameNo].Set(file, pageNo);
-        //insert into the hash table`
-	hashTable->insert(file, pageNo, frameNo);
-    }
-    catch(BufferExceededException e)
-    {
-        std::cerr << "BufferExceededException in allocPage()" << "\n";
-    }
+    //Allocate buffer frame
+    allocBuf(frameNo);
+    //create a new page at the frame in the buffer
+    bufPool[frameNo] = file->allocatePage();
+    //return a pointer to the frame
+    page=&bufPool[frameNo]; 
+    //set the pageNo 
+    pageNo = page->page_number();
+    //set the frame in the buffer
+    bufDescTable[frameNo].Set(file, pageNo);
+    //insert into the hash table`
+    hashTable->insert(file, pageNo, frameNo);
+
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
