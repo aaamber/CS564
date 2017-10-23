@@ -93,6 +93,7 @@ void BufMgr::allocBuf(FrameId & frame)
     if(bufDescTable[clockHand].dirty)
     {
         bufDescTable[clockHand].file->writePage(bufPool[clockHand]);
+    	frame = bufDescTable[clockHand].frameNo;
     }else
     {
         frame = bufDescTable[clockHand].frameNo;
@@ -104,30 +105,29 @@ void BufMgr::allocBuf(FrameId & frame)
 	
 void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
-    //do lookup in hashtable and catch exception to handle case 1
-    //else case 2
-    //page = new Page();
     FrameId frame;
     try{
-        hashTable->lookup(file, pageNo, frame);
+        //check to see if page is in table
+	hashTable->lookup(file, pageNo, frame);
         //set ref bit
         bufDescTable[frame].refbit = true;
         //increase pin count
         bufDescTable[frame].pinCnt += 1;
-	std::cout << "DEBUG: buffer readPage 1\n";
-        page = &bufPool[frame];
+        //return pointer to the frame
+	page = &bufPool[frame];
     }catch(const HashNotFoundException& e){
         //if page not found in hash table
         //allocate buffer frame
         allocBuf(frame);
+	//increment diskreads stat? (Was in TAs code)
         bufStats.diskreads++;
-	//readPage
+	//readPage directly into bufPool[frame]
         bufPool[frame]= file->readPage(pageNo);
-        //insert into hash table
-
         //set page
         bufDescTable[frame].Set(file,pageNo);
-        page=&bufPool[frame];	
+	//return pointer to the frame
+        page=&bufPool[frame];
+	//insert into the hashTable since page is now in buffer
         hashTable->insert(file,pageNo,frame);
     }
     catch (BufferExceededException e)
@@ -196,21 +196,21 @@ void BufMgr::flushFile(const File* file)
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
-    //TODO call allocBuf first? need to delete the allocated page if failed?
-   // page = new Page();
-   // *page = file->allocatePage();
-    //pageNo = page->page_number();
     FrameId frameNo;
     try
     {
-        allocBuf(frameNo);
+    	//Allocate buffer frame
+	allocBuf(frameNo);
+	//create a new page at the frame in the buffer
         bufPool[frameNo] = file->allocatePage();
-
+	//return a pointer to the frame
 	page=&bufPool[frameNo]; 
+	//set the pageNo 
 	pageNo = page->page_number();
-        
+        //set the frame in the buffer
 	bufDescTable[frameNo].Set(file, pageNo);
-        hashTable->insert(file, pageNo, frameNo);
+        //insert into the hash table`
+	hashTable->insert(file, pageNo, frameNo);
     }
     catch(BufferExceededException e)
     {
