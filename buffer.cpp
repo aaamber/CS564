@@ -113,18 +113,20 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
         bufDescTable[frame].refbit = true;
         //increase pin count
         bufDescTable[frame].pinCnt += 1;
-        *page = bufPool[frame];
+        Page page_temp = bufPool[frame];
+        page = &page_temp;
     }catch(const HashNotFoundException& e){
         //if page not found in hash table
         //allocate buffer frame
         allocBuf(frame);
         //readPage
-        *page = file->readPage(pageNo);
+        Page page_temp = file->readPage(pageNo);
         //insert into hash table
         hashTable->insert(file,pageNo,frame);
         //set page
         bufDescTable[frame].Set(file,pageNo);
-        bufPool[frame] = *page;
+        bufPool[frame] = page_temp;
+        page = &page_temp;
     }
     catch (BufferExceededException e)
     {
@@ -193,20 +195,21 @@ void BufMgr::flushFile(const File* file)
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
     //TODO call allocBuf first? need to delete the allocated page if failed?
-    *page = file->allocatePage();
-    pageNo = page->page_number();
+    Page page_temp = file->allocatePage();
+    pageNo = page_temp.page_number();
     FrameId frameNo;
     try
     {
         allocBuf(frameNo);
         hashTable->insert(file, pageNo, frameNo);
         bufDescTable[frameNo].Set(file, pageNo);
-        bufPool[frameNo] = *page;
+        bufPool[frameNo] = page_temp;
     }
     catch(BufferExceededException e)
     {
         std::cerr << "BufferExceededException in allocPage()" << "\n";
     }
+    page = &page_temp;
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
