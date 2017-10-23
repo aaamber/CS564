@@ -113,20 +113,18 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
         bufDescTable[frame].refbit = true;
         //increase pin count
         bufDescTable[frame].pinCnt += 1;
-        Page page_temp = bufPool[frame];
-        page = &page_temp;
+        *page = bufPool[frame];
     }catch(const HashNotFoundException& e){
         //if page not found in hash table
         //allocate buffer frame
         allocBuf(frame);
         //readPage
-        Page page_temp = file->readPage(pageNo);
+        *page = file->readPage(pageNo);
         //insert into hash table
         hashTable->insert(file,pageNo,frame);
         //set page
         bufDescTable[frame].Set(file,pageNo);
-        bufPool[frame] = page_temp;
-        page = &page_temp;
+        bufPool[frame] = *page;
     }
     catch (BufferExceededException e)
     {
@@ -139,6 +137,7 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
 {
     FrameId frameNo;
     //do nothing if throw exception
+    std::cout << "buffer unPinPage 1";
     try{
         hashTable->lookup(file, pageNo, frameNo);
         if (bufDescTable[frameNo].pinCnt == 0){
@@ -194,22 +193,28 @@ void BufMgr::flushFile(const File* file)
 
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
+    std::cout << "buffer allocPage 1\n";
     //TODO call allocBuf first? need to delete the allocated page if failed?
-    Page page_temp = file->allocatePage();
-    pageNo = page_temp.page_number();
+    Page page1;
+    page1 = file->allocatePage();
+    page = &page1; 
+    std::cout << "buffer allocPage 2\n";
+    pageNo = page->page_number();
     FrameId frameNo;
     try
     {
         allocBuf(frameNo);
+        std::cout << "buffer allocPage 3\n";
         hashTable->insert(file, pageNo, frameNo);
         bufDescTable[frameNo].Set(file, pageNo);
-        bufPool[frameNo] = page_temp;
+        std::cout << "buffer allocPage 4\n";
+        bufPool[frameNo] = page1;
+        std::cout << "buffer allocPage 5\n";
     }
     catch(BufferExceededException e)
     {
         std::cerr << "BufferExceededException in allocPage()" << "\n";
     }
-    page = &page_temp;
 }
 
 void BufMgr::disposePage(File* file, const PageId PageNo)
