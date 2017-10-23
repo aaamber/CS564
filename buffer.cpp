@@ -46,13 +46,13 @@ BufMgr::~BufMgr() {
     //if all frame is not pined, flush out the dirty page
     for (FrameId i = 0; i < numBufs; i++){
         if(bufDescTable[i].dirty != 0){//page is dirty
-            const Page new_page = bufPool[i];
-            bufDescTable[i].file->writePage(new_page);
+            bufDescTable[i].file->writePage(bufPool[i]);
         }
     }
-    //deallocate buffer pool
-    delete bufPool;
-    delete bufDescTable;
+    //deallocate buffer pool, DescTable and hashTable
+    delete[] bufPool;
+    delete[] bufDescTable;
+    delete hashTable;
 }
 
 void BufMgr::advanceClock()
@@ -63,7 +63,6 @@ void BufMgr::advanceClock()
 
 void BufMgr::allocBuf(FrameId & frame) 
 {   
-
     int count = 0;
     while(count <= numBufs){
         advanceClock();
@@ -87,7 +86,7 @@ void BufMgr::allocBuf(FrameId & frame)
     }
     if(count > numsBufs)
     {
-        throw BUfferExceededException();
+        throw BufferExceededException();
     }
 
     // write to disk if dirty
@@ -107,27 +106,9 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
     //do lookup in hashtable and catch exception to handle case 1
     //else case 2
-    FrameId* frame;
     try
     {
-	hashTable->lookup(file, pageNo, *frame);
-        //set ref bit
-        bufDescTable[*frame].refbit = true;
-        //increase pin count
-        bufDescTable[*frame].pinCnt += 1;
-        //TODO return pointer to frame via page
-    }
-    catch(HashNotFoundException e){
-        //if page not found in hash table
-        //allocate buffer frame
-        allocBuf(*frame);
-        //readPage
-        *page = file->readPage(pageNo);
-        //insert into hash table
-        hashTable->insert(file,pageNo,*frame);
-        //set page
-        bufDescTable[*frame].Set(file,pageNo);
-        //TODO return pointer to frame via page
+        
     }
     catch (BufferExceededException e)
     {
@@ -142,11 +123,14 @@ void BufMgr::unPinPage(File* file, const PageId pageNo, const bool dirty)
     //do nothing if throw exception
     try{
         hashTable->lookup(file, pageNo, frameNo);
-        if (bufDescTable[frameNo].pinCnt ==0){
+        if (bufDescTable[frameNo].pinCnt == 0){
             throw PageNotPinnedException("page not pinned", pageNo, frameNo);
         }
         else{
             bufDescTable[frameNo].pinCnt--;
+            if (dirty){
+                bufDescTable[frameNo].dirty = true;
+            }
         }
     }
     catch (HashNotFoundException e){
@@ -179,8 +163,7 @@ void BufMgr::flushFile(const File* file)
             //the page to disk and then set the dirty bit for the
             //page to false
             if (bufDescTable[i].dirty != 0){
-                const Page new_page = bufPool[i];
-                bufDescTable[i].file->writePage(new_page);
+                bufDescTable[i].file->writePage(bufPool[i]);
                 bufDescTable[i].dirty = 0;
             }
             //remove the page from the hashtable
