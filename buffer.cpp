@@ -58,12 +58,12 @@ BufMgr::~BufMgr() {
 void BufMgr::advanceClock()
 {
    //increment clockhand%bufs
-   clockHand = (clockHand + 1)%bufs;
+   clockHand = (clockHand + 1)%numBufs;
 }
 
 void BufMgr::allocBuf(FrameId & frame) 
 {   
-    int count = 0;
+    uint32_t count = 0;
     while(count <= numBufs){
         advanceClock();
         if (!bufDescTable[clockHand].valid)
@@ -84,7 +84,7 @@ void BufMgr::allocBuf(FrameId & frame)
             count++;
         }
     }
-    if(count > numsBufs)
+    if(count > numBufs)
     {
         throw BufferExceededException();
     }
@@ -106,25 +106,25 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
     //do lookup in hashtable and catch exception to handle case 1
     //else case 2
-    FrameId* frame;
+    FrameId frame;
     try{
-        hashTable->lookup(file, pageNo, *frame);
+        hashTable->lookup(file, pageNo, frame);
         //set ref bit
-        bufDescTable[*frame].refbit = true;
+        bufDescTable[frame].refbit = true;
         //increase pin count
-        bufDescTable[*frame].pinCnt += 1;
-        //TODO return pointer to frame via page
+        bufDescTable[frame].pinCnt += 1;
+        *page = bufPool[frame];
     }catch(const HashNotFoundException& e){
         //if page not found in hash table
         //allocate buffer frame
-        allocBuf(*frame);
+        allocBuf(frame);
         //readPage
         *page = file->readPage(pageNo);
         //insert into hash table
-        hashTable->insert(file,pageNo,*frame);
+        hashTable->insert(file,pageNo,frame);
         //set page
-        bufDescTable[*frame].Set(file,pageNo);
-        //TODO return pointer to frame via page
+        bufDescTable[frame].Set(file,pageNo);
+        bufPool[frame] = *page;
     }
     catch (BufferExceededException e)
     {
@@ -193,16 +193,15 @@ void BufMgr::flushFile(const File* file)
 void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) 
 {
     //TODO call allocBuf first? need to delete the allocated page if failed?
-    page = file->allocatePage();
-    pageNo = page.page_number();
+    *page = file->allocatePage();
+    pageNo = page->page_number();
     FrameId frameNo;
     try
     {
         allocBuf(frameNo);
         hashTable->insert(file, pageNo, frameNo);
-        Set(file, pageNo);
         bufDescTable[frameNo].Set(file, pageNo);
-        bufPool[frameNo] = page;
+        bufPool[frameNo] = *page;
     }
     catch(BufferExceededException e)
     {
