@@ -106,9 +106,25 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 {
     //do lookup in hashtable and catch exception to handle case 1
     //else case 2
-    try
-    {
-        
+    FrameId* frame;
+    try{
+        hashTable->lookup(file, pageNo, *frame);
+        //set ref bit
+        bufDescTable[*frame].refbit = true;
+        //increase pin count
+        bufDescTable[*frame].pinCnt += 1;
+        //TODO return pointer to frame via page
+    }catch(const HashNotFoundException& e){
+        //if page not found in hash table
+        //allocate buffer frame
+        allocBuf(*frame);
+        //readPage
+        *page = file->readPage(pageNo);
+        //insert into hash table
+        hashTable->insert(file,pageNo,*frame);
+        //set page
+        bufDescTable[*frame].Set(file,pageNo);
+        //TODO return pointer to frame via page
     }
     catch (BufferExceededException e)
     {
