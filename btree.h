@@ -290,7 +290,8 @@ class BTreeIndex {
    * High Operator. Can only be LT(<) or LTE(<=).
    */
 	Operator	highOp;
-
+    
+    bool rootIsLeaf;
 	
  public:
 

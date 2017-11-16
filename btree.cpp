@@ -27,11 +27,6 @@ namespace badgerdb
 // -----------------------------------------------------------------------------
 
 //Variables should go in bTree.h
-BlobFile* bFile;
-BufMgr* bufMgr;
-std::string indexName;
-int offset;
-Datatype type;
  
 // -----------------------------------------------------------------------------
 // BTreeIndex::BTreeIndex -- Constructor
@@ -48,22 +43,24 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
     outIndexName = idxStr.str();
     //bufferMgr
     bufMgr = bufMgrIn;
-    //Set Index name for global use
-    indexName = outIndexName;
     //Set attrByteOffset for global use
-    offset = attrByteOffset;
+    this.attrByteOffset = attrByteOffset;
     //Set attrType for global use
-    type = attrType;
+    attributeType = attrType;
+
     //Try to open Blobfile
     try
     {
-        bFile -> open(outIndexName);
+        file -> open(outIndexName);
+        
     }
     //File was not found thus we create a new one
     catch(FileNotFoundException e)
     {
-        bFile -> create(outIndexName);
+        file -> create(outIndexName);
+        rootIsLeaf = true;
         //TODO fill the newly created Blob File
+        
     }
 
 }
@@ -95,7 +92,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
   dataEntry.set(rid, *((int *)key));
   // root
   Page* root;
-  PageId rootPageNum;
+  // PageId rootPageNum;
   bufMgr->readPage(file, rootPageNum, root);
   // TODO: find a way to detect whether the root is a leaf node
   if (rootIsLeaf)
@@ -286,6 +283,7 @@ const void BTreeIndex::splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyP
   if (leafPageNum == rootPageNum)
   {
     updateRoot(leafPageNum);
+    rootIsLeaf = false;
   }
 }
 
