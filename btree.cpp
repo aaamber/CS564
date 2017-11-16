@@ -1,4 +1,4 @@
-/**
+v/**
  * @author See Contributors.txt for code contributors and overview of BadgerDB.
  *
  * @section LICENSE
@@ -26,12 +26,45 @@ namespace badgerdb
 // BTreeIndex::BTreeIndex -- Constructor
 // -----------------------------------------------------------------------------
 
+//Variables should go in bTree.h
+BlobFile* bFile;
+BufMgr* bufMgr;
+std::string indexName;
+int offset;
+Datatype type;
+ 
+// -----------------------------------------------------------------------------
+// BTreeIndex::BTreeIndex -- Constructor
+// -----------------------------------------------------------------------------
 BTreeIndex::BTreeIndex(const std::string & relationName,
 		std::string & outIndexName,
 		BufMgr *bufMgrIn,
 		const int attrByteOffset,
 		const Datatype attrType)
 {
+    //Retrieve the Index Name
+    std::ostringstream idxStr;
+    idxStr << relationName << "." << attrByteOffset;
+    outIndexName = idxStr.str();
+    //bufferMgr
+    bufMgr = bufMgrIn;
+    //Set Index name for global use
+    indexName = outIndexName;
+    //Set attrByteOffset for global use
+    offset = attrByteOffset;
+    //Set attrType for global use
+    type = attrType;
+    //Try to open Blobfile
+    try
+    {
+        bFile -> open(outIndexName);
+    }
+    //File was not found thus we create a new one
+    catch(FileNotFoundException e)
+    {
+        bFile -> create(outIndexName);
+        //TODO fill the newly created Blob File
+    }
 
 }
 
@@ -42,6 +75,13 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
+    //bufMgr->unPinPage(bFile,page,true);
+    bufMgr->flushFile(bFile);
+    delete[]bFile;
+    //delete[]bufMgr; 
+    //delete indexName;
+    //delete offset;
+    //delete type;
 }
 
 // -----------------------------------------------------------------------------
