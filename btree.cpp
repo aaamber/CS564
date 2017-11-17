@@ -42,25 +42,31 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
     idxStr << relationName << "." << attrByteOffset;
     outIndexName = idxStr.str();
     //bufferMgr
-    bufMgr = bufMgrIn;
+    BTreeIndex::bufMgr = bufMgrIn;
     //Set attrByteOffset for global use
-    this.attrByteOffset = attrByteOffset;
+    BTreeIndex::attrByteOffset = attrByteOffset;
     //Set attrType for global use
-    attributeType = attrType;
+    BTreeIndex::attributeType = attrType;
 
     //Try to open Blobfile
     try
     {
-        file -> open(outIndexName);
-        
+        BTreeIndex::file = new BlobFile(outIndexName, false);
+        //File was opened successfully read in rootpage
+        updateRoot(1);
     }
     //File was not found thus we create a new one
     catch(FileNotFoundException e)
     {
-        file -> create(outIndexName);
-        rootIsLeaf = true;
-        //TODO fill the newly created Blob File
-        
+        //File did not exist from upon, thus create a new blob file
+        BTreeIndex::file = new BlobFile(outIndexName, true);
+        //fill the newly created Blob File using filescan
+        FileScan fileScan(relationName,bufMgr);
+        RecordId rid;   
+        std::string record;
+        fileScan.scanNext(rid);
+        record = fileScan.getRecord();
+
     }
 
 }
@@ -73,8 +79,8 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 BTreeIndex::~BTreeIndex()
 {
     //bufMgr->unPinPage(bFile,page,true);
-    bufMgr->flushFile(bFile);
-    delete[]bFile;
+    BTreeIndex::bufMgr->flushFile(BTreeIndex::file);
+    delete[]file;
     //delete[]bufMgr; 
     //delete indexName;
     //delete offset;
