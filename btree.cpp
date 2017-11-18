@@ -452,45 +452,57 @@ const void BTreeIndex::startScan(const void* lowValParm,
   currentPageNum = rootPageNum;
   // Start scanning by reading rootpage into the buffer pool
   bufMgr->readPage(file, currentPageNum, currentPageData);
-
-  // Cast
-  NonLeafNodeInt* currentNode = (NonLeafNodeInt *) currentPageData;
-  while(currentNode->level == 1)
+  if(rootIsLeaf)
   {
-    // Cast page to node
-    currentNode = (NonLeafNodeInt *) currentPageData;
-    // Check the key array in each level
-    bool nullVal = false;
-    for(int i = 0; i < INTARRAYNONLEAFSIZE && !nullVal; i++) //what if the slot have null value??????
-    {
-      // Check if the next one in the key is not inserted
-      if(i < INTARRAYNONLEAFSIZE - 1 && currentNode->keyArray[i + 1] <= currentNode->keyArray[i])
-      {
-        nullVal = true;
-      }
-      // Next page is on the left of the key that is bigger then the value
-      if(currentNode->keyArray[i] > lowValInt)
-      {
-        //unpin unused page
-        bufMgr->unPinPage(file, currentPageNum, false);
-        currentPageNum = currentNode->pageNoArray[i];
-        //read next page into bufferpoll
-        bufMgr->readPage(file, currentPageNum, currentPageData);
-        break;
-      }
-      /* If we did not find any key that is bigger then the value, then it is on the right side
-         of the biggest value */
-      if(i == INTARRAYNONLEAFSIZE - 1 or nullVal)
-      {
-        //unpin unused page
-        bufMgr->unPinPage(file, currentPageNum, false);
-        currentPageNum = currentNode->pageNoArray[i + 1];
-        //read next page into bufferpoll
-        bufMgr->readPage(file, currentPageNum, currentPageData);
-      }
-    }
+    LeafNodeInt* currentNode = (LeafNodeInt *) currentPageData;
   }
-
+  else
+  {
+    // Cast
+    NonLeafNodeInt* currentNode = (NonLeafNodeInt *) currentPageData;
+    bool foundLeaf = false;
+    while(!foundLeaf)
+    {
+      // Cast page to node
+      currentNode = (NonLeafNodeInt *) currentPageData;
+      // Check if this is the level above the leaf, if yes, the next level is the leaf
+      if(currentNode.level == 1)
+      {
+        foundLeaf = true;
+      }
+      // Check the key array in each level
+      bool nullVal = false;
+      for(int i = 0; i < INTARRAYNONLEAFSIZE && !nullVal; i++) //what if the slot have null value??????
+      {
+        // Check if the next one in the key is not inserted
+        if(i < INTARRAYNONLEAFSIZE - 1 && currentNode->keyArray[i + 1] <= currentNode->keyArray[i])
+        {
+          // The next one is null
+          nullVal = true;
+        }
+        // Next page is on the left of the key that is bigger then the value
+        if(currentNode->keyArray[i] > lowValInt)
+        {
+          //unpin unused page
+          bufMgr->unPinPage(file, currentPageNum, false);
+          currentPageNum = currentNode->pageNoArray[i];
+          //read next page into bufferpoll
+          bufMgr->readPage(file, currentPageNum, currentPageData);
+          break;
+        }
+        /* If we did not find any key that is bigger then the value, then it is on the right side
+         of the biggest value */
+        if(i == INTARRAYNONLEAFSIZE - 1 or nullVal)
+        {
+          //unpin unused page
+          bufMgr->unPinPage(file, currentPageNum, false);
+          currentPageNum = currentNode->pageNoArray[i + 1];
+          //read next page into bufferpoll
+          bufMgr->readPage(file, currentPageNum, currentPageData);
+        }
+      }
+    }  
+  }
   // Now the curNode is lefe node try to find the smallest one that satisefy the OP
   bool found = false;
   while(!found){
