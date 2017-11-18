@@ -368,26 +368,26 @@ const void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator highOpParm)
 {
 	
-	lowValInt = *((int *)lowValParm);
-	highValInt = *((int *)highValParm);
+  lowValInt = *((int *)lowValParm);
+  highValInt = *((int *)highValParm);
 
-	if((lowOpParm == GT or lowOpParm == GTE) and (highOpParm == LT or highOpParm == LTE))
-	{
-		throw BadOpcodesException();
-	}
-	if(lowValInt > highValInt)
-	{
-		throw BadScanrangeException();
-	}
+  if((lowOpParm == GT or lowOpParm == GTE) and (highOpParm == LT or highOpParm == LTE))
+  {
+    throw BadOpcodesException();
+  }
+  if(lowValInt > highValInt)
+  {
+    throw BadScanrangeException();
+  }
 
-	lowOp = lowOpParm;
-	highOp = highOpParm;
+  lowOp = lowOpParm;
+  highOp = highOpParm;
 
-	// Scan is already started
-	if(scanExecuting)
-	{
-		endScan();
-	}
+  // Scan is already started
+  if(scanExecuting)
+  {
+    endScan();
+  }
 
 	currentPageNum = rootPageNum;
 	// Start scanning by reading rootpage into the buffer pool
