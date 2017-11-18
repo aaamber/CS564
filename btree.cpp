@@ -107,13 +107,12 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
         std:string record;
         try
         {
-          while(true)
+          while(1)
           {
             filescan.scanNext(rid);
             record = fileScan.getRecord();
             // get key
-            void * key = (void *)(record.c_str() + attrByteOffset);
-            insertEntry(key, rid);
+            insertEntry(record.c_str() + attrByteOffset, rid);
           }
         }
         catch(EndOfFileException e)
@@ -172,7 +171,21 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
   }
 }
 
-// TODO initialize rootIsLeaf
+const void BtreeIndex::findNextNonLeafNode(NonLeafNodeInt *curPage, PageId &nextNodenum)
+{
+
+  int i = nodeOccupancy;
+  while(i >= 0 && (curNode->pageNoArray[i] == 0))
+  {
+    i--;
+  }
+  while(i > 0 && (curNode->keyArray[i-1] >= dataEntry.key))
+  {
+    i--;
+  }
+  nextNodeNum = curNode->pageNoArray[i];
+}
+
 const void BTreeIndex::insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *newchildEntry)
 {
   // nonleaf node
@@ -182,16 +195,7 @@ const void BTreeIndex::insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf,
     // find the right key to traverse
     Page *nextPage;
     PageId nextNodeNum;
-    int i = nodeOccupancy;
-    while(i >= 0 && (curNode->pageNoArray[i] == 0))
-    {
-      i--;
-    }
-    while(i > 0 && (curNode->keyArray[i-1] >= dataEntry.key))
-    {
-      i--;
-    }
-    nextNodeNum = curNode->pageNoArray[i];
+    findNextNonLeafNode(curpage, &nextNodenum);
     bufMgr->readPage(file, nextNodeNum, nextPage);
     // NonLeafNodeInt *nextNode = (NonLeafNodeInt *)nextPage;
     if (curNode->level == 1)

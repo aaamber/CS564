@@ -296,6 +296,7 @@ class BTreeIndex {
   */
   bool rootIsLeaf;
 
+  const void BtreeIndex::findNextNonLeafNode(NonLeafNodeInt *curPage, PageId &nextNodenum);
   const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *newchildEntry);
   const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *newchildEntry);
   const void updateRoot(PageId firstPageInRoot);
