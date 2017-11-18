@@ -291,10 +291,18 @@ class BTreeIndex {
    */
 	Operator	highOp;
 
-    /*
-    * determines if root is a leaf node
-    */
-    bool rootIsLeaf;
+  /*
+  * determines if root is a leaf node
+  */
+  bool rootIsLeaf;
+
+  const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *newchildEntry);
+  const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *newchildEntry);
+  const void updateRoot(PageId firstPageInRoot);
+  const void splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyPair<int> *newchildEntry, const RIDKeyPair<int> dataEntry);
+  const void insertLeaf(LeafNodeInt *leaf, RIDKeyPair<int> entry);
+  const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> entry);
+  const bool _satisfies(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int val); 
 	
  public:
 
@@ -368,14 +376,6 @@ class BTreeIndex {
 	 * @throws ScanNotInitializedException If no scan has been initialized.
 	**/
 	const void endScan();
-
-  const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *newchildEntry);
-  const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *newchildEntry);
-  const void updateRoot(PageId firstPageInRoot);
-  const void splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyPair<int> *newchildEntry, const RIDKeyPair<int> dataEntry);
-  const void insertLeaf(LeafNodeInt *leaf, RIDKeyPair<int> entry);
-  const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> entry);
-  const bool _satisfies(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int val);	
 };
 
 }

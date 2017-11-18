@@ -37,10 +37,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		const int attrByteOffset,
 		const Datatype attrType)
 {
-    //Retrieve the Index Name
-    std::ostringstream idxStr;
-    idxStr << relationName << "." << attrByteOffset;
-    outIndexName = idxStr.str();
+
     //bufferMgr
     BTreeIndex::bufMgr = bufMgrIn;
     //Set attrByteOffset for global use
@@ -48,24 +45,90 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
     //Set attrType for global use
     BTreeIndex::attributeType = attrType;
 
+    leafOccupancy = INTARRAYLEAFSIZE;
+    nodeOccupancy = INTARRAYNONLEAFSIZE;
+    scanExecuting = false;
+
+    //Retrieve the Index Name
+    std::ostringstream idxStr;
+    idxStr << relationName << "." << attrByteOffset;
+    outIndexName = idxStr.str();
     //Try to open Blobfile
     try
     {
         BTreeIndex::file = new BlobFile(outIndexName, false);
-        //File was opened successfully read in rootpage
-        updateRoot(1);
+        // read meta info
+        headerPageNum = file->getFirstPageNo();
+        Page *headerPage;
+        bufMgr->readPage(file, headerPageNum, headerPage);
+        IndexMetaInfo *meta = (IndexMetaInfo *)headerPage;
+        rootPageNum = meta->rootPageNo;
+
+        if(....)
+        {
+          rootIsLeaf = true;
+        }
+        else
+        {
+          rootIsLeaf = false;
+        }
+
+        bufMgr->unPinPage(file, headerPageNum, false);
+        
     }
     //File was not found thus we create a new one
     catch(FileNotFoundException e)
     {
         //File did not exist from upon, thus create a new blob file
         BTreeIndex::file = new BlobFile(outIndexName, true);
+        // allocate root and header page
+        Page *headerPage;
+        Page *rootPage;
+        bufMgr->allocPage(file, headerPageNum, headerPage);
+        bufMgr->allocPage(file, rootPageNum, rootPage);
+
+        // fill meta infor
+        IndexMetaInfo *meta = (IndexMetaInfo *)headerPage;
+        meta->attrByteOffset = attrByteOffset;
+        meta->attrType = attrType;
+        meta->rootPageNo = rootPageNum;
+        strcpy(meta->relationName, ...); // copy name
+
+        // initiaize root
+        LeafNodeInt *root = (LeafNodeInt *)rootPage;
+        root->rightSibPageNo = 0;
+        rootIsLeaf = true;
+
+        bufMgr->unPinPage(file, headerPageNum, true);
+
         //fill the newly created Blob File using filescan
-        FileScan fileScan(relationName,bufMgr);
-        RecordId rid;   
-        std::string record;
-        fileScan.scanNext(rid);
-        record = fileScan.getRecord();
+        FileScan fileScan = fileScan(relationName,bufMgr);
+        RecordId = rid;
+        std:string record;
+        try
+        {
+          while(true)
+          {
+            filescan.scanNext(rid);
+            record = fileScan.getRecord();
+            // get key
+            void * key = (void *)(record.c_str() + attrByteOffset);
+            insertEntry(key, rid);
+          }
+        }
+        catch(EndOfFileException e)
+        {
+          // save Btee index file to disk
+          bufMgr->flushFile(file)
+          // shutdown file scan
+          delete fileScan;
+        }
+        // catch buffer manager exceptions
+        catch(BadgerDbException e)
+        {
+          delete fileScan;
+          throw e;
+        }
 
     }
 
@@ -79,12 +142,11 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 BTreeIndex::~BTreeIndex()
 {
     //bufMgr->unPinPage(bFile,page,true);
-    BTreeIndex::bufMgr->flushFile(BTreeIndex::file);
-    delete[]file;
-    //delete[]bufMgr; 
-    //delete indexName;
-    //delete offset;
-    //delete type;
+    scanExecuting = false;
+    bufMgr->flushFile(BTreeIndex::file);
+    delete file;
+    delete bufMgr;
+    // TODO need to delet all pointers?
 }
 
 // -----------------------------------------------------------------------------
@@ -100,7 +162,6 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
   Page* root;
   // PageId rootPageNum;
   bufMgr->readPage(file, rootPageNum, root);
-  // TODO: find a way to detect whether the root is a leaf node
   if (rootIsLeaf)
   {
     insert(root, rootPageNum, true, dataEntry, NULL);
@@ -130,10 +191,9 @@ const void BTreeIndex::insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf,
     {
       i--;
     }
-    nextNodeNum = curNode->pageNoArray[i+1];
+    nextNodeNum = curNode->pageNoArray[i];
     bufMgr->readPage(file, nextNodeNum, nextPage);
     // NonLeafNodeInt *nextNode = (NonLeafNodeInt *)nextPage;
-
     if (curNode->level == 1)
     {
       // next page is leaf
@@ -353,21 +413,21 @@ const void BTreeIndex::insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> e
  * If another scan is already executing, that needs to be ended here.
  * Set up all the variables for scan. Start from root to find out the leaf page that contains the first RecordID
  * that satisfies the scan parameters. Keep that page pinned in the buffer pool.
- * @param lowVal	Low value of range, pointer to integer / double / char string
- * @param lowOp		Low operator (GT/GTE)
- * @param highVal	High value of range, pointer to integer / double / char string
- * @param highOp	High operator (LT/LTE)
+ * @param lowVal  Low value of range, pointer to integer / double / char string
+ * @param lowOp   Low operator (GT/GTE)
+ * @param highVal High value of range, pointer to integer / double / char string
+ * @param highOp  High operator (LT/LTE)
  * @throws  BadOpcodesException If lowOp and highOp do not contain one of their their expected values 
  * @throws  BadScanrangeException If lowVal > highval
  * @throws  NoSuchKeyFoundException If there is no key in the B+ tree that satisfies the scan criteria.
 **/
 
 const void BTreeIndex::startScan(const void* lowValParm,
-				   const Operator lowOpParm,
-				   const void* highValParm,
-				   const Operator highOpParm)
+           const Operator lowOpParm,
+           const void* highValParm,
+           const Operator highOpParm)
 {
-	
+  
   lowValInt = *((int *)lowValParm);
   highValInt = *((int *)highValParm);
 
@@ -419,7 +479,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
         break;
       }
       /* If we did not find any key that is bigger then the value, then it is on the right side
-			   of the biggest value */
+         of the biggest value */
       if(i == INTARRAYNONLEAFSIZE - 1 or nullVal)
       {
         //unpin unused page
@@ -477,11 +537,11 @@ const void BTreeIndex::startScan(const void* lowValParm,
 }
 
 /**
-	* Fetch the record id of the next index entry that matches the scan.
-	* Return the next record from current page being scanned. If current page has been scanned to its entirety, move on to the right sibling of current page, if any exists, to start scanning that page. Make sure to unpin any pages that are no longer required.
-  * @param outRid	RecordId of next record found that satisfies the scan criteria returned in this
-	* @throws ScanNotInitializedException If no scan has been initialized.
-	* @throws IndexScanCompletedException If no more records, satisfying the scan criteria, are left to be scanned.
+  * Fetch the record id of the next index entry that matches the scan.
+  * Return the next record from current page being scanned. If current page has been scanned to its entirety, move on to the right sibling of current page, if any exists, to start scanning that page. Make sure to unpin any pages that are no longer required.
+  * @param outRid RecordId of next record found that satisfies the scan criteria returned in this
+  * @throws ScanNotInitializedException If no scan has been initialized.
+  * @throws IndexScanCompletedException If no more records, satisfying the scan criteria, are left to be scanned.
 **/
 const void BTreeIndex::scanNext(RecordId& outRid) 
 {
@@ -522,8 +582,8 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 }
 
 /**
-	* Terminate the current scan. Unpin any pinned pages. Reset scan specific variables.
-	* @throws ScanNotInitializedException If no scan has been initialized.
+  * Terminate the current scan. Unpin any pinned pages. Reset scan specific variables.
+  * @throws ScanNotInitializedException If no scan has been initialized.
 **/
 const void BTreeIndex::endScan() 
 {
@@ -541,14 +601,14 @@ const void BTreeIndex::endScan()
 }
 
 /**
-	* Helper function to check if the key is satisfies
-	* @param lowVal	  Low value of range, pointer to integer / double / char string
-  * @param lowOp		Low operator (GT/GTE)
-  * @param highVal	High value of range, pointer to integer / double / char string
-  * @param highOp	  High operator (LT/LTE)
-	* @param val      Value of the key
-	* @return True if satisfies False if not
-	*
+  * Helper function to check if the key is satisfies
+  * @param lowVal   Low value of range, pointer to integer / double / char string
+  * @param lowOp    Low operator (GT/GTE)
+  * @param highVal  High value of range, pointer to integer / double / char string
+  * @param highOp   High operator (LT/LTE)
+  * @param val      Value of the key
+  * @return True if satisfies False if not
+  *
 **/
 const bool BTreeIndex::_satisfies(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int val)
 {
