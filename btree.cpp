@@ -197,8 +197,13 @@ const void BTreeIndex::insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf,
     insert(nextPage, nextNodeNum, nodeIsLeaf, dataEntry, newchildEntry);
 
     // no split in child, just return
-    if (newchildEntry != nullptr)
+    if (newchildEntry == nullptr)
     {
+	    // unpin current page from call stack
+	    bufMgr->unPinPage(file, curPageNum, false);
+    }
+    else
+	  {
       // if the curpage is not full
       if (curNode->pageNoArray[nodeOccupancy] == 0)
       {
