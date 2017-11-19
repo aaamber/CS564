@@ -99,6 +99,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
         rootIsLeaf = true;
 
         bufMgr->unPinPage(file, headerPageNum, true);
+        bufMgr->unPinPage(file, rootPageNum, true);
 
         //fill the newly created Blob File using filescan
         FileScan fileScan(relationName, bufMgr);
@@ -120,24 +121,35 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 	        // design choice 2: sort file first and insert entries by sorted entry data
 
-
         }
         catch(EndOfFileException e)
         {
+          printDataEntry();
           // save Btee index file to disk
           bufMgr->flushFile(file);
         }
-        // catch buffer manager exceptions
-        catch(BadgerDbException e)
-        {
-          throw e;
-        }
-
     }
 
 }
 
+const void BTreeIndex::printDataEntry(){
+    Page* Node;
+    PageId curPN = 2;
+    bufMgr->readPage(file, curPN, Node);
+    std::cout<<"All key\n";
+    LeafNodeInt *currNode;
+    do{
+        currNode = (LeafNodeInt*) Node;
+        for(int i = 0; i < leafOccupancy; i++){
+            if(currNode->keyArray[i] != 0){
+            std::cout<<currNode->keyArray[i]<<"\n";}
+        }
+        bufMgr->unPinPage(file, curPN, false);
+        curPN = currNode->rightSibPageNo;
+        bufMgr->readPage(file, curPN, Node);
+    }while(currNode->rightSibPageNo != 0);
 
+}
 // -----------------------------------------------------------------------------
 // BTreeIndex::~BTreeIndex -- destructor
 // -----------------------------------------------------------------------------
@@ -445,16 +457,12 @@ const void BTreeIndex::startScan(const void* lowValParm,
   {
     endScan();
   }
-	scanExecuting = true;
 
   currentPageNum = rootPageNum;
   // Start scanning by reading rootpage into the buffer pool
   bufMgr->readPage(file, currentPageNum, currentPageData);
-  if(rootIsLeaf)
-  {
-    LeafNodeInt* currentNode = (LeafNodeInt *) currentPageData;
-  }
-  else
+
+  if(!rootIsLeaf)
   {
     // Cast
     NonLeafNodeInt* currentNode = (NonLeafNodeInt *) currentPageData;
@@ -462,6 +470,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
     while(!foundLeaf)
     {
       // Cast page to node
+      std::cout<<"currentPageNum is "<<currentPageNum<<"\n";
       currentNode = (NonLeafNodeInt *) currentPageData;
       // Check if this is the level above the leaf, if yes, the next level is the leaf
       if(currentNode->level == 1)
@@ -472,42 +481,12 @@ const void BTreeIndex::startScan(const void* lowValParm,
       // Find the leaf
       PageId nextPageNum;
       findNextNonLeafNode(currentNode, nextPageNum, lowValInt);
+      std::cout<<"nextpage is "<<nextPageNum<<"\n";
       // Unpin
       bufMgr->unPinPage(file, currentPageNum, false);
       currentPageNum = nextPageNum;
       // read the nextPage
       bufMgr->readPage(file, currentPageNum, currentPageData);
-
-/*      // Check the key array in each level
-      bool nullVal = false;
-      for(int i = 0; i < INTARRAYNONLEAFSIZE && !nullVal; i++) //what if the slot have null value??????
-      {
-        // Check if the next one in the key is not inserted
-        if(i < INTARRAYNONLEAFSIZE - 1 && currentNode->keyArray[i + 1] <= currentNode->keyArray[i])
-        {
-          // The next one is null
-          nullVal = true;
-        }
-        // Next page is on the left of the key that is bigger then the value
-        if(currentNode->keyArray[i] > lowValInt)
-        {
-          //unpin unused page
-          bufMgr->unPinPage(file, currentPageNum, false);
-          currentPageNum = currentNode->pageNoArray[i];
-          //read next page into bufferpoll
-          bufMgr->readPage(file, currentPageNum, currentPageData);
-          break;
-        }
-        // If we did not find any key that is bigger then the value, then it is on the right side of the biggest value 
-        if(i == INTARRAYNONLEAFSIZE - 1 or nullVal)
-        {
-          //unpin unused page
-          bufMgr->unPinPage(file, currentPageNum, false);
-          currentPageNum = currentNode->pageNoArray[i + 1];
-          //read next page into bufferpoll
-          bufMgr->readPage(file, currentPageNum, currentPageData);
-        }
-      }*/
     }
   }
   // Now the curNode is leaf node try to find the smallest one that satisefy the OP
@@ -525,6 +504,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
     for(int i = 0; i < leafOccupancy and !nullVal; i++)
     {
       int key = currentNode->keyArray[i];
+      std::cout<<"Key in the loop is "<<key<<"\n";
       // Check if the next one in the key is not inserted
       if(i < leafOccupancy - 1 and currentNode->ridArray[i + 1].page_number == 0)
       {
@@ -534,6 +514,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
       if(_satisfies(lowValInt, lowOp, highValInt, highOp, key))
       {
         // select
+        std::cout<<"key is selected is "<<key<< "\n";
         nextEntry = i;
         found = true;
         scanExecuting = true;

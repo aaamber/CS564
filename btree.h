@@ -304,7 +304,7 @@ class BTreeIndex {
   const void insertLeaf(LeafNodeInt *leaf, RIDKeyPair<int> entry);
   const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> entry);
   const bool _satisfies(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int val); 
-	
+  const void printDataEntry();	
  public:
 
   /**
