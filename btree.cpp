@@ -171,7 +171,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
   }
 }
 
-const void BtreeIndex::findNextNonLeafNode(NonLeafNodeInt *curPage, PageId &nextNodenum)
+const void BtreeIndex::findNextNonLeafNode(NonLeafNodeInt *curNode, PageId &nextNodenum)
 {
 
   int i = nodeOccupancy;
@@ -195,7 +195,7 @@ const void BTreeIndex::insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf,
     // find the right key to traverse
     Page *nextPage;
     PageId nextNodeNum;
-    findNextNonLeafNode(curpage, &nextNodenum);
+    findNextNonLeafNode(curNode, &nextNodenum);
     bufMgr->readPage(file, nextNodeNum, nextPage);
     // NonLeafNodeInt *nextNode = (NonLeafNodeInt *)nextPage;
     if (curNode->level == 1)
@@ -474,7 +474,22 @@ const void BTreeIndex::startScan(const void* lowValParm,
       {
         foundLeaf = true;
       }
-      // Check the key array in each level
+
+      // Find the leaf
+      PageId nextPageNum;
+      findNextNonLeafNode(currentNode, &nextPageNum);
+      // Unpin
+      bufMgr->unPinPage(file, currentPageNum, false);
+      currentPageNum = nextPageNum;
+      // Readinto bufferpoll
+      bufMgr->readPage(file, currentPageNum, currentPageData);
+
+
+
+
+
+
+/*      // Check the key array in each level
       bool nullVal = false;
       for(int i = 0; i < INTARRAYNONLEAFSIZE && !nullVal; i++) //what if the slot have null value??????
       {
@@ -494,8 +509,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
           bufMgr->readPage(file, currentPageNum, currentPageData);
           break;
         }
-        /* If we did not find any key that is bigger then the value, then it is on the right side
-         of the biggest value */
+        // If we did not find any key that is bigger then the value, then it is on the right side of the biggest value 
         if(i == INTARRAYNONLEAFSIZE - 1 or nullVal)
         {
           //unpin unused page
@@ -504,21 +518,26 @@ const void BTreeIndex::startScan(const void* lowValParm,
           //read next page into bufferpoll
           bufMgr->readPage(file, currentPageNum, currentPageData);
         }
-      }
+      }*/
     }  
   }
-  // Now the curNode is lefe node try to find the smallest one that satisefy the OP
+  // Now the curNode is leaf node try to find the smallest one that satisefy the OP
   bool found = false;
   while(!found){
     // Cast page to node
     LeafNodeInt* currentNode = (LeafNodeInt *) currentPageData;
+    // Check if the whole page is null
+    if(currentNode->pageNoArray[0].page_number == 0)
+    {
+      throw NoSuchKeyFoundException();
+    }
     // Search from the left leaf page to the right to find the fit
     bool nullVal = false;
-    for(int i = 0; i < INTARRAYLEAFSIZE and !nullVal; i++)
+    for(int i = 0; i < leafOccupancy and !nullVal; i++)
     {
       int key = currentNode->keyArray[i];
       // Check if the next one in the key is not inserted
-      if(i < INTARRAYNONLEAFSIZE - 1 and currentNode->keyArray[i + 1] <= key)
+      if(i < leafOccupancy - 1 and currentNode->pageNoArray[i + 1].page_number == 0)
       {
         nullVal = true;
       }
@@ -537,7 +556,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
       }
       
       // Did not find any matching key in this leaf, go to next leaf
-      if(i == INTARRAYLEAFSIZE - 1 or nullVal){
+      if(i == leafOccupancy - 1 or nullVal){
         //unpin page
         bufMgr->unPinPage(file, currentPageNum, false);
         //did not find the matching one in the more right leaf
@@ -565,9 +584,25 @@ const void BTreeIndex::scanNext(RecordId& outRid)
   {
     throw ScanNotInitializedException();
   }
+   
+  if(currentNode->pageNoArray[nextEntry].page_number == 0 or nextEntry == leafOccupancy)
+  {
+    // Unpin page and read papge
+    bufMgr->unPinPage(file, currentPageNum, false);
+    // No more next leaf
+    if(currentNode->rightSibPageNo == 0)
+    {
+      throw IndexScanCompletedException();
+    }
+    currentPageNum = currentNode->rightSibPageNo;
+    bufMgr->readPage(file, currentPageNum, currentPageData);
+    // Reset nextEntry
+    nextEntry = 0;
+  }
+
   // Cast page to node
   LeafNodeInt* currentNode = (LeafNodeInt *) currentPageData;
-  
+ 
   // Check  if rid satisfy
   int key = currentNode->keyArray[nextEntry];
   if(_satisfies(lowValInt, lowOp, highValInt, highOp, key))
@@ -576,20 +611,6 @@ const void BTreeIndex::scanNext(RecordId& outRid)
     // Incrment nextEntry
     nextEntry++;
     // If current page has been scanned to its entirety
-    if((nextEntry < INTARRAYNONLEAFSIZE - 1 and currentNode->keyArray[nextEntry + 1] <= key) or nextEntry == INTARRAYNONLEAFSIZE)
-    {
-      //unpin page and read papge
-      bufMgr->unPinPage(file, currentPageNum, false);
-      //no more next leaf
-      if(currentNode->rightSibPageNo == 0)
-      {
-        throw IndexScanCompletedException();
-      }
-      currentPageNum = currentNode->rightSibPageNo;
-      bufMgr->readPage(file, currentPageNum, currentPageData);
-      // Reset nextEntry
-      nextEntry = 0;
-    }
   }
   else
   {
