@@ -297,13 +297,14 @@ class BTreeIndex {
   bool rootIsLeaf;
 
   const void findNextNonLeafNode(NonLeafNodeInt *curPage, PageId &nextNodenum, int key);
-  const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *newchildEntry);
-  const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *newchildEntry);
-  const void updateRoot(PageId firstPageInRoot);
-  const void splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyPair<int> *newchildEntry, const RIDKeyPair<int> dataEntry);
+  const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *&newchildEntry);
+  const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *&newchildEntry);
+  const void updateRoot(PageId firstPageInRoot, PageKeyPair<int> *newchildEntry);
+  const void splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyPair<int> *&newchildEntry, const RIDKeyPair<int> dataEntry);
   const void insertLeaf(LeafNodeInt *leaf, RIDKeyPair<int> entry);
-  const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> entry);
+  const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> *entry);
   const bool _satisfies(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int val); 
+  const void printKeys(std::string a, NonLeafNodeInt *node);
   const void printDataEntry();	
  public:
 
