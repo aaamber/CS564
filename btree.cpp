@@ -121,7 +121,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
         catch(EndOfFileException e)
         {
           std::cout<<"root page number is "<<rootPageNum<<std::endl;
-          printDataEntry();
+          //printDataEntry();
           // save Btee index file to disk
           bufMgr->flushFile(file);
         }
@@ -139,7 +139,8 @@ const void BTreeIndex::printDataEntry(){
         currNode = (LeafNodeInt*) Node;
         for(int i = 0; i < leafOccupancy; i++){
             if(currNode->keyArray[i] != 0){
-            std::cout<<currNode->keyArray[i]<<"\n";}
+            int value = currNode->keyArray[i];
+            std::cout<<value<<"\n";}
         }
         bufMgr->unPinPage(file, curPN, false);
         curPN = currNode->rightSibPageNo;
@@ -545,6 +546,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
       }
       else if((highOp == LT and key >= highValInt) or (highOp == LTE and key > highValInt))
       {
+        bufMgr->unPinPage(file, currentPageNum, false);
         throw NoSuchKeyFoundException();
       }
       
@@ -590,6 +592,7 @@ const void BTreeIndex::scanNext(RecordId& outRid)
     }
     currentPageNum = currentNode->rightSibPageNo;
     bufMgr->readPage(file, currentPageNum, currentPageData);
+    currentNode = (LeafNodeInt *) currentPageData;
     // Reset nextEntry
     nextEntry = 0;
   }
