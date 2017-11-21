@@ -70,9 +70,11 @@ void createRelationRandom();
 void createRelationForwardWithSize(int size);
 void createRelationBackwardWithSize(int size);
 void createRelationRandomWithSize(int size);
+void createRelationForwardWithRange(int start, int end);
 void intTests();
 void intTestsEmpty();
 void intTestsOneLeaf();
+void intTestsNegative();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
 void indexTestsInput(int input);
@@ -82,6 +84,7 @@ void test3();
 void test4();
 void test5();
 void test6();
+void test7();
 void errorTests();
 void deleteRelation();
 
@@ -145,13 +148,15 @@ int main(int argc, char **argv)
 	// filescan goes out of scope here, so relation file gets closed.
 
 	File::remove(relationName);
-    //test5();    
-    //test4();
+  test6();  
+  test5();    
+  //test4();
+  test7();
 	test1();
 	test2();
 	test3();
-	//errorTests();
-
+	errorTests();
+  std::cout<<"all test passed"<<std::endl;
   return 1;
 }
 
@@ -190,8 +195,8 @@ void test3()
 
 void test4()
 {
-    // Create a relation with tuple valued 0 to spesific size in fowarding order
-    std::cout << "---------------------" << std::endl;
+  // Create a relation with tuple valued 0 to spesific size in fowarding order
+  std::cout << "---------------------" << std::endl;
 	std::cout << "extra test for split in non-leaf node" << std::endl;
 	createRelationForwardWithSize((1023+1)*(682/2)+ 100);
 	indexTests();
@@ -199,26 +204,85 @@ void test4()
 }
 void test5()
 {
-    // Test for empty tree
-    std::cout << "---------------------" << std::endl;
+  // Test for empty tree
+  std::cout << "---------------------" << std::endl;
 	std::cout << "extra test for empty tree" << std::endl;
-	createRelationForwardWithSize(0);
+	createRelationRandomWithSize(0);
 	indexTestsInput(0);
 	deleteRelation();
 }
 void test6()
 {
-    // Test for only one leaf and it is the root
-    std::cout << "---------------------" << std::endl;
+  // Test for only one leaf and it is the root
+  std::cout << "---------------------" << std::endl;
 	std::cout << "extra test for only one left" << std::endl;
-	createRelationForwardWithSize(600);
-	indexTestsInput(600);
+	createRelationRandomWithSize(600);
+	indexTestsInput(6);
 	deleteRelation();
 }
 
+void test7()
+{
+  // Test for have negative value
+  std::cout << "---------------------" << std::endl;
+	std::cout << "extra test for negative value" << std::endl;
+	createRelationForwardWithRange(-2000, 2000);
+	indexTestsInput(7);
+	deleteRelation(); 
+}
+
+// -----------------------------------------------------------------------------
+// createRelationForwardWithRange
+// -----------------------------------------------------------------------------
+void createRelationForwardWithRange(int start, int end)
+{
+	std::vector<RecordId> ridVec;
+  // destroy any old copies of relation file
+	try
+	{
+		File::remove(relationName);
+	}
+	catch(FileNotFoundException e)
+	{
+	}
+
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+	PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // Insert a bunch of tuples into the relation.
+  for(int i = start; i < end; i++ )
+	{
+    sprintf(record1.s, "%05d string record", i);
+    record1.i = i;
+    record1.d = (double)i;
+    std::string new_data(reinterpret_cast<char*>(&record1), sizeof(record1));
+
+		while(1)
+		{
+			try
+			{
+    		new_page.insertRecord(new_data);
+				break;
+			}
+			catch(InsufficientSpaceException e)
+			{
+				file1->writePage(new_page_number, new_page);
+  			new_page = file1->allocatePage(new_page_number);
+			}
+		}
+  }
+
+	file1->writePage(new_page_number, new_page);
+}
 
 
-// createRelationForward With Size as parameter
+// -----------------------------------------------------------------------------
+// createRelationForwardWithSize
+// -----------------------------------------------------------------------------
 void createRelationForwardWithSize(int size)
 {
 	std::vector<RecordId> ridVec;
@@ -264,10 +328,10 @@ void createRelationForwardWithSize(int size)
 	file1->writePage(new_page_number, new_page);
 }
 
-// -----------------------------------------------------------------------------
-// createRelationBackward
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// createRelationBackwardWithSize
+// -----------------------------------------------------------------------------
 void createRelationBackwardWithSize(int size)
 {
   // destroy any old copies of relation file
@@ -313,7 +377,7 @@ void createRelationBackwardWithSize(int size)
 }
 
 // -----------------------------------------------------------------------------
-// createRelationRandom
+// createRelationRandomWithSize
 // -----------------------------------------------------------------------------
 
 void createRelationRandomWithSize(int size)
@@ -336,7 +400,7 @@ void createRelationRandomWithSize(int size)
   // insert records in random order
 
   std::vector<int> intvec(relationSize);
-  for( int i = 0; i < relationSize; i++ )
+  for( int i = 0; i < size; i++ )
   {
     intvec[i] = i;
   }
@@ -346,7 +410,7 @@ void createRelationRandomWithSize(int size)
 	int i = 0;
   while( i < size )
   {
-    pos = random() % (relationSize-i);
+    pos = random() % (size-i);
     val = intvec[pos];
     sprintf(record1.s, "%05d string record", val);
     record1.i = val;
@@ -368,32 +432,14 @@ void createRelationRandomWithSize(int size)
 			}
 		}
 
-		int temp = intvec[relationSize-1-i];
-		intvec[relationSize-1-i] = intvec[pos];
+		int temp = intvec[size-1-i];
+		intvec[size-1-i] = intvec[pos];
 		intvec[pos] = temp;
 		i++;
   }
   
 	file1->writePage(new_page_number, new_page);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // -----------------------------------------------------------------------------
 // createRelationForward
@@ -576,18 +622,25 @@ void indexTests()
   }
 }
 
-
-void indexTestsInput(int input)
+// -----------------------------------------------------------------------------
+// indexTestsInput
+// @param test_input: number of the test
+// -----------------------------------------------------------------------------
+void indexTestsInput(int test_input)
 {
   if(testNum == 1)
   {
-    if(input == 0)
+    if(test_input == 0)
     {
         intTestsEmpty();
     }
-    else if(input <= 682)
+    else if(test_input == 6)
     {
         intTestsOneLeaf();
+    }
+    else if(test_input == 7)
+    {
+      intTestsNegative();
     }
 		try
 		{
@@ -649,6 +702,24 @@ void intTestsOneLeaf()
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 0)
   
 }
+
+// test for negtive value
+void intTestsNegative()
+{
+   std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
+
+	// run some tests
+	checkPassFail(intScan(&index,25,GT,40,LT), 14)
+	checkPassFail(intScan(&index,20,GTE,35,LTE), 16)
+	checkPassFail(intScan(&index,-3,GT,3,LT), 5)
+	checkPassFail(intScan(&index,-1000,GT,1000,LT), 1999)
+	checkPassFail(intScan(&index,0,GT,1,LT), 0)
+	checkPassFail(intScan(&index,300,GT,400,LT), 99)
+	checkPassFail(intScan(&index,3000,GTE,4000,LT), 0)
+  
+}
+
 int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)
 {
   RecordId scanRid;

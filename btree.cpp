@@ -121,7 +121,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
         catch(EndOfFileException e)
         {
           std::cout<<"root page number is "<<rootPageNum<<std::endl;
-          //printDataEntry();
+          // printDataEntry();
           // save Btee index file to disk
           bufMgr->flushFile(file);
         }
@@ -518,9 +518,12 @@ const void BTreeIndex::startScan(const void* lowValParm,
   while(!found){
     // Cast page to node
     LeafNodeInt* currentNode = (LeafNodeInt *) currentPageData;
+    //int printOutData = currentNode->keyArray[0];
+    //std::cout<<"first data check is"<< printOutData<<"\n";
     // Check if the whole page is null
     if(currentNode->ridArray[0].page_number == 0)
     {
+      bufMgr->unPinPage(file, currentPageNum, false);
       throw NoSuchKeyFoundException();
     }
     // Search from the left leaf page to the right to find the fit
