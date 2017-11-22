@@ -296,13 +296,70 @@ class BTreeIndex {
   */
   PageId initialRootPageNum;
 
+  /**
+   * Helper function to find the next level of page for the key should be in. 
+   * @param curPage       The current Page we are checking
+   * @param nextNodenum   Return value for the next level page ID
+   * @param key           The Key we are checking
+  */
   const void findNextNonLeafNode(NonLeafNodeInt *curPage, PageId &nextNodenum, int key);
+  
+  /**
+   * Recursive function to insert the index entry to the index file
+   * @param curPage           The current Page we are checking
+   * @param curPageNum        PageId of current Page
+   * @param nodeIsLeaf        If the current page is a leaf node or nonleaf node
+   * @param dataEntry         Index entry that needs to be inserted
+   * @param newchildEntry     A pageKeyPair that contains an entry that is pushed up after splitting a node; it is null if no split in child nodes
+  */
   const void insert(Page *curPage, PageId curPageNum, bool nodeIsLeaf, const RIDKeyPair<int> dataEntry, PageKeyPair<int> *&newchildEntry);
+  
+
+  /**
+   * Recursive function to insert the index entry to the index file
+   * @param oldNode           the node that needs to be split
+   * @param oldPageNum        PageId of the oldNode
+   * @param newchildEntry     A pageKeyPair that contains an entry that is pushed up after splitting a node;
+   *                          The value gets updated to contain the new keyPair that needs to be pushed up;
+  */
   const void splitNonLeaf(NonLeafNodeInt *oldNode, PageId oldPageNum, PageKeyPair<int> *&newchildEntry);
+  
+  /**
+   * When the root needs to be split, create a new root node and insert the entry pushed up and update the header page 
+   * @param firstPageInRoot   The pageId of the first pointer in the root page
+   * @param newchildEntry     The keyPair that is pushed up after splitting
+  */
   const void updateRoot(PageId firstPageInRoot, PageKeyPair<int> *newchildEntry);
+  /**
+   * Helper function to splitLeafNode when the leafNode is full
+   * @param leaf          Leaf node that is full
+   * @param leafPageNum   The number of page of that leaf
+   * @param newchildEntry The PageKeyPair that need to push up
+   * @param dataEntry     The data entry that need to be inserted 
+  */
   const void splitLeaf(LeafNodeInt *leaf, PageId leafPageNum, PageKeyPair<int> *&newchildEntry, const RIDKeyPair<int> dataEntry);
+  /**
+   * Helper function to insert entry into a leaf node
+   * @param leaf     leaf node that need to be inserted into
+   * @param entry    Then entry needed to be inserted
+   */
   const void insertLeaf(LeafNodeInt *leaf, RIDKeyPair<int> entry);
+  /**
+   * Helper function to insert entry into a non leaf node
+   * @param nonleaf  Nonleaf node that need to be inserted into
+   * @param entry    Then entry needed to be inserted
+   *
+   */
   const void insertNonLeaf(NonLeafNodeInt *nonleaf, PageKeyPair<int> *entry);
+  /**
+   * Helper function to check if the key is satisfies
+   * @param lowVal   Low value of range, pointer to integer / double / char string
+   * @param lowOp    Low operator (GT/GTE)
+   * @param highVal  High value of range, pointer to integer / double / char string
+   * @param highOp   High operator (LT/LTE)
+   * @param val      Value of the key
+   * @return True if satisfies False if not
+   */
   const bool checkKey(int lowVal, const Operator lowOp, int highVal, const Operator highOp, int key); 
  public:
 
