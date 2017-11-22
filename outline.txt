@@ -1,0 +1,2 @@
+The tests are in the main.cpp file. The tests we added are from test4 to test8.
+The design report is the PDF that is included in the folder.
