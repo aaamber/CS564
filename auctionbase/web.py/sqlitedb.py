@@ -28,6 +28,8 @@ def transaction():
 # #
 # check out http://webpy.org/cookbook/transactions for examples
 
+
+
 # returns the current time from your database
 def getTime():
     # TODO: update the query string to match
@@ -49,8 +51,11 @@ def getItemById(item_id):
 
 # wrapper method around web.py's db.query method
 # check out http://webpy.org/cookbook/query for more info
-def query(query_string, vars = {}):
-    return list(db.query(query_string, vars))
+def query(query_string, vars = {}, update = False):
+    if update:
+        db.query(query_string, vars)
+    else:
+        return list(db.query(query_string, vars))
 
 #####################END HELPER METHODS#####################
 

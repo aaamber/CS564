@@ -120,7 +120,8 @@ class select_time:
 
         t = sqlitedb.transaction()
         try:
-            sqlitedb.query('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
+            #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
+            sqlitedb.query('update CurrentTime set time = $updated_time', {'updated_time': selected_time}, True)
         except Exception as e:
             t.rollback()
             print str(e)
