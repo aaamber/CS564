@@ -112,6 +112,133 @@ class search:
     def GET(self):
         #current_time = sqlitedb.getTime()
         return render_template('search.html')
+    def POST(self):
+        post_params = web.input()
+        itemID = post_params['itemID']
+        itemCategory = post_params['itemCategory']
+        itemDescription = post_params['itemDescription']
+        userID = post_params['userID']
+        minPrice = post_params['minPrice']
+        maxPrice = post_params['maxPrice']
+        status = post_params['status']
+
+        userQuery = {'itemID':itemID,'itemCategory':itemCategory,'itemDescription':itemDescription,
+                        'userID':userID,'minPrice':minPrice,'maxPrice':maxPrice,'status':status}
+        
+        searchQuery = {}        
+        searchSentenceDict = {'select':['distinct','count(*)'],'from':[],'where':[]}
+        searchSentence = ""
+
+        #Get the query information that user added, save that in the searchQuery dictionary for variable passing.
+        #Add the necessary syntax to execute those querys into the searchSentenceDict.
+        for key,value in userQuery.items():
+            #check to see if the value is not empty
+            if value != "":
+                #Translations for each into the search sentence
+                #ItemID query
+                if "itemID" == key:
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    searchSentenceDict['where'].append('Items.itemID = $itemID')
+                #ItemCategory query
+                elif "itemCategory" == key:
+                    #Nested EXISTS in WHERE will work as intended requries Items to be in above FROM
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    #return all items matching the itemID (does all if no specific itemID) and the specified category
+                    searchSentenceDict['where'].append('exists(select Categories.itemID from Categories where Categories.category = $itemCategory and Categories.itemID = Items.itemID)')
+                #ItemDescription query
+                elif "itemDescription" == key:
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    searchSentenceDict['where'].append('Items.Description like $itemDescription')
+                    #Adjust the value so it will execute a pattern match on the string
+                    value = '%' + value + '%'
+                #UserID querey
+                elif "userID" == key:
+                    #Nested Exists Similar to itemCategory, requires Items to be in above FROM
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    #return all items matching the userID. 
+                    searchSentenceDict['where'].append('exists(select Users.userID from Users where Users.userID = $userID and Items.Seller_UserID==Users.userID)')
+                #MinPrice query
+                elif "minPrice" == key:
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    #return all items whose "Currently" price is greater than or equal too minPrice.
+                    searchSentenceDict['where'].append('Items.Currently >= $minPrice')
+                #MinPrice query
+                elif "maxPrice" == key:
+                    if "Items" not in searchSentenceDict['from']:
+                        searchSentenceDict['from'].append('Items')
+                    #return all items whose "Currently" price is greater than or equal too minPrice.
+                    searchSentenceDict['where'].append('Items.Currently <= $maxPrice')
+                #Status query
+                elif "status" == key:
+                    if "Items" not in searchSentenceDict['from']: 
+                        searchSentenceDict['from'].append('Items')
+                    #get the current time of the system
+                    currentTime=sqlitedb.getTime()
+                    currentTimeString = '\''+currentTime+'\''
+                    #if we are looking for open items, check for the ending time greater than current
+                    if value == 'open':
+                        searchSentenceDict['where'].append('Items.Ends>' + currentTimeString)
+                    #if we are looking for closed items, check for the ending time less than current
+                    elif value == 'close':
+                        searchSentenceDict['where'].append('Items.Ends<' + currentTimeString)
+                    #if we are looking for not started items, check for the starting time greater than current
+                    elif value == 'notStarted':
+                        searchSentenceDict['where'].append('Items.Started>' + currentTimeString)
+                    #otherwise all is the value, thus add no where clause
+                    else:
+                        pass
+
+                #Finally add the value to the official searchQuery 
+                searchQuery[key] = value                     
+            else:
+                print(key + "was empty")
+        
+        #Contructs the querey searchSentence for db query from the searchSentenceDict
+        #SELECT
+        searchSentence = 'select'
+        for index,value in enumerate(searchSentenceDict['select']):
+            if(index+1 != len(searchSentenceDict['from'])):
+                searchSentence = searchSentence + ' ' + value
+            else:
+                searchSentence = searchSentence + ' ' + value
+        #FROM
+        if len(searchSentenceDict['from'])!=0:
+            searchSentence = searchSentence + ' from'
+            for index,value in enumerate(searchSentenceDict['from']):
+                if(index+1 != len(searchSentenceDict['from'])):
+                    searchSentence = searchSentence + ' ' + value + ','
+                else:
+                    searchSentence = searchSentence + ' ' + value
+        #WHERE
+        if len(searchSentenceDict['where'])!=0:
+            searchSentence = searchSentence + ' where'
+            for index,value in enumerate(searchSentenceDict['where']):
+                if(index+1 != len(searchSentenceDict['where'])):
+                    searchSentence = searchSentence + ' ' + value + ' and'
+                else:
+                    searchSentence = searchSentence + ' ' + value
+        
+        #DEBUG print messages
+        print(searchQuery)
+        print(searchSentence)
+
+        #Create the transcation,query the db, return the search results based off query,update html.
+        t = sqlitedb.transaction()
+        try:
+            search_result = sqlitedb.query(searchSentence, searchQuery)
+        except Exception as e:
+            t.rollback()
+            print str(e)
+        else:
+            t.commit()
+        
+        return render_template('search.html',search_result = search_result)
+        
 
 class curr_time:
     # A simple GET request, to '/currtime'
