@@ -67,13 +67,42 @@ class timetable:
         return render_template('timetable.html')
 
 class addbid:
-    # A simple GET request, to '/currtime'
-    #
-    # Notice that we pass in `current_time' to our `render_template' call
-    # in order to have its value displayed on the web page
     def GET(self):
         #current_time = sqlitedb.getTime()
         return render_template('add_bid.html')
+
+    def POST(self):
+        current_time = sqlitedb.getTime()
+        post_params = web.input()
+        itemID = int(post_params['itemID'])
+        userID = post_params['userID']
+        price = float(post_params['price'])
+
+        try:
+            if sqlitedb.isBidAlive(itemID):
+                # Add bid into db
+                t = sqlitedb.transaction()
+                try:
+                    #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
+                    sqlitedb.query('INSERT INTO Bids (itemID, UserID, Amount, Time) VALUES ($itemID, $userid, $price, $time) ', {'itemID': itemID, 'userid': userID, 'price': price, 'time' : current_time }, True)
+                except Exception as e:
+                    t.rollback()
+                    print str(e)
+                    update_message = 'An error occur'
+                    result = False
+                else:
+                    t.commit()
+                    update_message = 'Success!'
+                    result = True
+            else:
+                update_message = 'Auction on this item is closed'
+                result = False
+        except Exception as e:
+            # item not exist
+            result = False
+            update_message = 'Item not exist'
+
+        return render_template('add_bid.html', add_result = result, message = update_message)
 
 class search:
     # A simple GET request, to '/currtime'

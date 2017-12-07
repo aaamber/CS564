@@ -45,7 +45,7 @@ def getTime():
 # a given ID), this will throw an Exception!
 def getItemById(item_id):
     # TODO: rewrite this method to catch the Exception in case `result' is empty
-    query_string = 'select * from Items where item_ID = $itemID'
+    query_string = 'select * from Items where ItemID = $itemID'
     result = query(query_string, {'itemID': item_id})
     return result[0]
 
@@ -61,3 +61,18 @@ def query(query_string, vars = {}, update = False):
 
 #TODO: additional methods to interact with your database,
 # e.g. to update the current time
+def isBidAlive(item_id):
+    item = getItemById(item_id)
+    cur_time = getTime()
+    start_time = item.Started
+    end_time = item.Ends
+    buy_price = item.Buy_Price
+    cur_bid_price = item.Currently
+    # if start_time <= cur_time:
+    #     print('bigger than strat time')
+    # if end_time >= cur_time:
+    #     print('smaller than end time')
+    # if cur_bid_price < buy_price:
+    #     print('not buy out yet')
+    # exist = (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
+    return (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
