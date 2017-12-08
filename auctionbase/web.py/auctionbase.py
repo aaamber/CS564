@@ -51,11 +51,23 @@ def render_template(template_name, **context):
 #####################END HELPER METHODS#####################
 
 urls = ('/currtime', 'curr_time',
+        '/', 'index',
         '/selecttime', 'select_time',
         '/search', 'search',
         '/timetable', 'timetable',
-        '/add_bid', 'addbid'
+        '/add_bid', 'addbid',
+        '/item', 'show_item'
         )
+
+class index:
+    # A simple GET request, to '/currtime'
+    #
+    # Notice that we pass in `current_time' to our `render_template' call
+    # in order to have its value displayed on the web page
+    def GET(self):
+        #current_time = sqlitedb.getTime()
+        return render_template('index.html')
+
 
 class timetable:
     # A simple GET request, to '/currtime'
@@ -65,6 +77,17 @@ class timetable:
     def GET(self):
         #current_time = sqlitedb.getTime()
         return render_template('timetable.html')
+
+class show_item:
+    def GET(self):
+        return render_template('item.html', item = None)
+    def POST(self):
+        post_params = web.input()
+        item_id = post_params['item_id']
+        # get item
+        item = sqlitedb.getItemById(item_id)
+        return render_template('item.html', item = item)
+        
 
 class addbid:
     def GET(self):
@@ -131,7 +154,7 @@ class search:
                         'userID':userID,'minPrice':minPrice,'maxPrice':maxPrice,'status':status}
         
         searchQuery = {}        
-        searchSentenceDict = {'select':['distinct','count(*)'],'from':[],'where':[]}
+        searchSentenceDict = {'select':['distinct','*'],'from':[],'where':[]}
         searchSentence = ""
 
         #Get the query information that user added, save that in the searchQuery dictionary for variable passing.
@@ -227,21 +250,23 @@ class search:
                     searchSentence = searchSentence + ' ' + value + ' and'
                 else:
                     searchSentence = searchSentence + ' ' + value
+
         
         #DEBUG print messages
         print(searchQuery)
         print(searchSentence)
-
+        searchSentence=searchSentence+ ' limit 10'
         #Create the transcation,query the db, return the search results based off query,update html.
         t = sqlitedb.transaction()
         try:
             search_result = sqlitedb.query(searchSentence, searchQuery)
+
         except Exception as e:
             t.rollback()
             print str(e)
         else:
             t.commit()
-        
+
         return render_template('search.html',search_result = search_result)
         
 
@@ -278,16 +303,7 @@ class select_time:
         selected_time = '%s-%s-%s %s:%s:%s' % (yyyy, MM, dd, HH, mm, ss)
         update_message = '(Hello, %s. Previously selected time was: %s.)' % (enter_name, selected_time)
         # TODO: save the selected time as the current time in the database
-
-        t = sqlitedb.transaction()
-        try:
-            #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
-            sqlitedb.query('update CurrentTime set time = $updated_time', {'updated_time': selected_time}, True)
-        except Exception as e:
-            t.rollback()
-            print str(e)
-        else:
-            t.commit()
+        sqlitedb.updateTime(selected_time)
 
         # Here, we assign `update_message' to `message', which means
         # we'll refer to it in our template as `message'

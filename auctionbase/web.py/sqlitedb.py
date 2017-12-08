@@ -14,21 +14,17 @@ def enforceForeignKey():
 # initiates a transaction on the database
 def transaction():
     return db.transaction()
-# Sample usage (in auctionbase.py):
-#
-# t = sqlitedb.transaction()
-# try:
-#     sqlitedb.query('[FIRST QUERY STATEMENT]')
-#     sqlitedb.query('[SECOND QUERY STATEMENT]')
-# except Exception as e:
-#     t.rollback()
-#     print str(e)
-# else:
-#     t.commit()
-# #
-# check out http://webpy.org/cookbook/transactions for examples
 
-
+def updateTime(selected_time):
+    t = db.transaction()
+    try:
+        #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
+        query('update CurrentTime set time = $updated_time', {'updated_time': selected_time}, True)
+    except Exception as e:
+        t.rollback()
+        print str(e)
+    else:
+        t.commit()
 
 # returns the current time from your database
 def getTime():
@@ -47,7 +43,12 @@ def getItemById(item_id):
     # TODO: rewrite this method to catch the Exception in case `result' is empty
     query_string = 'select * from Items where ItemID = $itemID'
     result = query(query_string, {'itemID': item_id})
-    return result[0]
+    try:
+        result[0]
+        return result[0]
+    except:
+        return None
+
 
 # wrapper method around web.py's db.query method
 # check out http://webpy.org/cookbook/query for more info
@@ -82,7 +83,7 @@ def isUserValid(user_id):
         query_string = 'select * from Users where UserID = $user_id'
         result = query(query_string, {'user_id': user_id})
         test = result[0]
-        return true
+        return True
     except Exception as e:
         return False
     

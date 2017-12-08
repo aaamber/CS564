@@ -44,13 +44,30 @@
 <ul>
 {% if search_result %}
 {% for result in search_result %}
-	{% for key in result %}
-		<div>
-			<span>{{ key|e }}</span>
-			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-			<span>{{ result[key]|e }}</span>
-		</div>
-  	{% endfor %}
+	<a onclick="document.getElementById('item{{loop.index}}').submit(); return false;">
+		<form id="item{{loop.index}}" method="POST" action="item" >
+	      <input id="item-id" value="{{ result['ItemID'] }}" name = "item_id" class="btn btn-primary">
+		    {% for key in result %}
+			<div>
+				<span>{{ key|e }}</span>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				{% if key == 'Description' %}
+					<span>{{ result['Description'][0:300]|safe }}</span>
+				{% else %}
+					<span>{{ result[key]|e }}</span>
+				{% endif %}
+			</div>
+	  		{% endfor %}
+<!-- 	  	<div class="large-6 columns browse-item-info">
+          <div class="browse-item-title">{{ result['Name']|safe }}</div>
+          <div class="browse-item-current">Current Bid: ${{ result['Name']}}</div>
+          <div class="browse-item-end">End Time: {{ result['Name'] }}</div>
+        </div>
+        <div class="large-6 centered columns browse-item-description">
+          {{ result['Description'][0:500]|safe }}...
+        </div> -->
+    	</form>
+	</a>
   	<div>--------</div>
 {% endfor %}
 {% else %}

@@ -1,0 +1,12 @@
+{% extends "app_base.html" %}
+{% block content %}
+<h3>Item Details</h3> 
+{% if item != None %}
+ 
+{% else %}
+  <div class="row">
+  	No match item
+  </div>
+{% endif %}
+
+{% endblock %}
