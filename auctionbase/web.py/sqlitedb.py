@@ -76,3 +76,13 @@ def isBidAlive(item_id):
     #     print('not buy out yet')
     # exist = (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
     return (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
+
+def isUserValid(user_id):
+    try:
+        query_string = 'select * from Users where UserID = $user_id'
+        result = query(query_string, {'user_id': user_id})
+        test = result[0]
+        return true
+    except Exception as e:
+        return False
+    

@@ -78,29 +78,34 @@ class addbid:
         userID = post_params['userID']
         price = float(post_params['price'])
 
-        try:
-            if sqlitedb.isBidAlive(itemID):
-                # Add bid into db
-                t = sqlitedb.transaction()
-                try:
-                    #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
-                    sqlitedb.query('INSERT INTO Bids (itemID, UserID, Amount, Time) VALUES ($itemID, $userid, $price, $time) ', {'itemID': itemID, 'userid': userID, 'price': price, 'time' : current_time }, True)
-                except Exception as e:
-                    t.rollback()
-                    print str(e)
-                    update_message = 'An error occur'
-                    result = False
+        
+        if sqlitedb.isUserValid(userID):
+            try:
+                if sqlitedb.isBidAlive(itemID):
+                    # Add bid into db
+                    t = sqlitedb.transaction()
+                    try:
+                        #sqlitedb.update('update CurrentTime set time = $updated_time', {'updated_time': selected_time})
+                        sqlitedb.query('INSERT INTO Bids (itemID, UserID, Amount, Time) VALUES ($itemID, $userid, $price, $time) ', {'itemID': itemID, 'userid': userID, 'price': price, 'time' : current_time }, True)
+                    except Exception as e:
+                        t.rollback()
+                        print str(e)
+                        update_message = 'An error occur'
+                        result = False
+                    else:
+                        t.commit()
+                        update_message = 'Success!'
+                        result = True
                 else:
-                    t.commit()
-                    update_message = 'Success!'
-                    result = True
-            else:
-                update_message = 'Auction on this item is closed'
+                    update_message = 'Auction on this item is closed'
+                    result = False
+            except Exception as e:
+                # item not exist
                 result = False
-        except Exception as e:
-            # item not exist
+                update_message = 'Item not exist'
+        else:
             result = False
-            update_message = 'Item not exist'
+            update_message = 'User is not exist'
 
         return render_template('add_bid.html', add_result = result, message = update_message)
 
