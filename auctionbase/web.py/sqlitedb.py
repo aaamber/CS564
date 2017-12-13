@@ -60,6 +60,7 @@ def query(query_string, vars = {}, update = False):
 
 #####################END HELPER METHODS#####################
 
+
 #TODO: additional methods to interact with your database,
 # e.g. to update the current time
 def isBidAlive(item_id):
@@ -69,6 +70,20 @@ def isBidAlive(item_id):
     end_time = item.Ends
     buy_price = item.Buy_Price
     cur_bid_price = item.Currently
+    
+    priceCheck = False
+    if(buy_price==None):
+        priceCheck =True
+    elif(cur_bid_price<buy_price):
+        priceCheck = True
+
+    #DEBUG print
+    print(buy_price)
+    print(priceCheck)
+    print(start_time <= cur_time)
+    print(cur_time)
+    print(end_time)
+    print(end_time >= cur_time)
     # if start_time <= cur_time:
     #     print('bigger than strat time')
     # if end_time >= cur_time:
@@ -76,7 +91,7 @@ def isBidAlive(item_id):
     # if cur_bid_price < buy_price:
     #     print('not buy out yet')
     # exist = (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
-    return (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
+    return (start_time <= cur_time and end_time >= cur_time and priceCheck)
 
 def isUserValid(user_id):
     try:
@@ -128,10 +143,10 @@ def isStatusValid(value,currentTimeString):
     try:
         #if we are looking for open items, check for the ending time greater than current
         if value == 'open':
-            query_string = 'select * from Items where Items.Ends>'+currentTimeString + ' limit 1'
+            query_string = 'select * from Items where Items.Ends>'+currentTimeString + ' and Currently<Buy_Price limit 1'
         #if we are looking for closed items, check for the ending time less than current
         elif value == 'close':
-            query_string = 'select * from Items where Items.Ends<'+currentTimeString + ' limit 1'    
+            query_string = 'select * from Items where Items.Ends<'+currentTimeString + ' and Currently>=Buy_Price limit 1'    
         #if we are looking for not started items, check for the starting time greater than current
         elif value == 'notStarted':
             query_string = 'select * from Items where Items.Started>'+currentTimeString + ' limit 1'

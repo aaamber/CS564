@@ -124,6 +124,7 @@ class addbid:
                     result = False
             except Exception as e:
                 # item not exist
+                print(e)
                 result = False
                 update_message = 'Item not exist'
         else:
@@ -240,10 +241,10 @@ class search:
                     
                     #if we are looking for open items, check for the ending time greater than current
                     if value == 'open':
-                        searchSentenceDict['where'].append('Items.Ends>' + currentTimeString)
+                        searchSentenceDict['where'].append('Items.Ends>' + currentTimeString +' and Currently<Buy_Price')
                     #if we are looking for closed items, check for the ending time less than current
                     elif value == 'close':
-                        searchSentenceDict['where'].append('Items.Ends<' + currentTimeString)
+                        searchSentenceDict['where'].append('(Items.Ends<' + currentTimeString + ' or Currently>=Buy_Price)')
                     #if we are looking for not started items, check for the starting time greater than current
                     elif value == 'notStarted':
                         searchSentenceDict['where'].append('Items.Started>' + currentTimeString)
