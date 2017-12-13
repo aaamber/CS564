@@ -165,11 +165,21 @@ class search:
                 #Translations for each into the search sentence
                 #ItemID query
                 if "itemID" == key:
+                    #check if item is valid
+                    if not sqlitedb.isItemValid(value):
+                        #if the item is not valid return html itemID is wrong
+                            error_message = 'Item ID:' + value + ' does not exist'
+                            return render_template('search.html',message = error_message)
                     if "Items" not in searchSentenceDict['from']:
                         searchSentenceDict['from'].append('Items')
                     searchSentenceDict['where'].append('Items.itemID = $itemID')
                 #ItemCategory query
                 elif "itemCategory" == key:
+                    #check if category is valid
+                    if not sqlitedb.isCategoryValid(value):
+                        #if the item is not valid return html itemID is wrong
+                            error_message = 'Item Category:' + value + ' does not exist'
+                            return render_template('search.html',message = error_message)
                     #Nested EXISTS in WHERE will work as intended requries Items to be in above FROM
                     if "Items" not in searchSentenceDict['from']:
                         searchSentenceDict['from'].append('Items')
@@ -184,6 +194,11 @@ class search:
                     value = '%' + value + '%'
                 #UserID querey
                 elif "userID" == key:
+                    #check if user is valid
+                    if not sqlitedb.isUserValid(value):
+                        #if the user is not valid return html userID is wrong
+                            error_message = 'User ID:' + value + ' does not exist'
+                            return render_template('search.html',message = error_message)
                     #Nested Exists Similar to itemCategory, requires Items to be in above FROM
                     if "Items" not in searchSentenceDict['from']:
                         searchSentenceDict['from'].append('Items')
@@ -191,23 +206,38 @@ class search:
                     searchSentenceDict['where'].append('exists(select Users.userID from Users where Users.userID = $userID and Items.Seller_UserID==Users.userID)')
                 #MinPrice query
                 elif "minPrice" == key:
+                     #check if user is valid
+                    if not sqlitedb.isMinPriceValid(value):
+                        #if the user is not valid return html userID is wrong
+                            error_message = 'An item does not exist with a Min Price:' + value
+                            return render_template('search.html',message = error_message)
                     if "Items" not in searchSentenceDict['from']:
                         searchSentenceDict['from'].append('Items')
                     #return all items whose "Currently" price is greater than or equal too minPrice.
                     searchSentenceDict['where'].append('Items.Currently >= $minPrice')
                 #MinPrice query
                 elif "maxPrice" == key:
+                    if not sqlitedb.isMaxPriceValid(value):
+                        #if the user is not valid return html userID is wrong
+                            error_message = 'An item does not exist with a Max Price:' + value
+                            return render_template('search.html',message = error_message)
                     if "Items" not in searchSentenceDict['from']:
                         searchSentenceDict['from'].append('Items')
                     #return all items whose "Currently" price is greater than or equal too minPrice.
                     searchSentenceDict['where'].append('Items.Currently <= $maxPrice')
                 #Status query
                 elif "status" == key:
-                    if "Items" not in searchSentenceDict['from']: 
-                        searchSentenceDict['from'].append('Items')
                     #get the current time of the system
                     currentTime=sqlitedb.getTime()
                     currentTimeString = '\''+currentTime+'\''
+                    if not sqlitedb.isStatusValid(value,currentTimeString):
+                        #if the user is not valid return html userID is wrong
+                            error_message = 'An item does not exist with Status:' + value
+                            return render_template('search.html',message = error_message)
+
+                    if "Items" not in searchSentenceDict['from']: 
+                        searchSentenceDict['from'].append('Items')
+                    
                     #if we are looking for open items, check for the ending time greater than current
                     if value == 'open':
                         searchSentenceDict['where'].append('Items.Ends>' + currentTimeString)
@@ -255,7 +285,7 @@ class search:
         #DEBUG print messages
         print(searchQuery)
         print(searchSentence)
-        searchSentence=searchSentence+ ' limit 10'
+        searchSentence=searchSentence
         #Create the transcation,query the db, return the search results based off query,update html.
         t = sqlitedb.transaction()
         try:
@@ -266,8 +296,7 @@ class search:
             print str(e)
         else:
             t.commit()
-
-        return render_template('search.html',search_result = search_result)
+        return render_template('search.html',search_result = search_result, search_params=userQuery)
         
 
 class curr_time:

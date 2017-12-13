@@ -86,4 +86,60 @@ def isUserValid(user_id):
         return True
     except Exception as e:
         return False
-    
+
+def isItemValid(item_id):
+    try:
+        query_string = 'select * from Items where ItemID = $item_id'
+        result = query(query_string, {'item_id': item_id})
+        test = result[0]
+        return True
+    except Exception as e:
+        return False
+
+def isCategoryValid(category):
+    try:
+        query_string = 'select * from Categories where Category = $category'
+        result = query(query_string, {'category': category})
+        test = result[0]
+        return True
+    except Exception as e:
+        return False
+
+def isMinPriceValid(minPrice):
+    try:
+        query_string = 'select * from Items where Items.Currently >=$minPrice'
+        result = query(query_string, {'minPrice': minPrice})
+        test = result[0]
+        return True
+    except Exception as e:
+        return False
+
+def isMaxPriceValid(maxPrice):
+    try:
+        query_string = 'select * from Items where Items.Currently <=$maxPrice'
+        result = query(query_string, {'maxPrice': maxPrice})
+        test = result[0]
+        return True
+    except Exception as e:
+        return False
+
+
+def isStatusValid(value,currentTimeString):
+    try:
+        #if we are looking for open items, check for the ending time greater than current
+        if value == 'open':
+            query_string = 'select * from Items where Items.Ends>'+currentTimeString
+        #if we are looking for closed items, check for the ending time less than current
+        elif value == 'close':
+            query_string = 'select * from Items where Items.Ends<'+currentTimeString        
+        #if we are looking for not started items, check for the starting time greater than current
+        elif value == 'notStarted':
+            query_string = 'select * from Items where Items.Started>'+currentTimeString
+        #otherwise all is the value, thus add no where clause
+        else:
+            return True
+        result = query(query_string)
+        test = result[0]
+        return True
+    except Exception as e:
+        return False

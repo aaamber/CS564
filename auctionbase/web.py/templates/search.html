@@ -40,6 +40,39 @@
 	</div>
 	<div><input type="submit" value="Start Searching!" class="btn btn-primary" /></div>
 </form>
+
+{% if search_params is defined %}
+<h3>Search Parameters</h3>
+	<div>
+		<span>Item ID:</span>
+		<span>{{search_params['itemID']|e}}</span>
+	</div>
+	<div>
+		<span>Item Category:</span>
+		<span>{{search_params['itemCategory']|e}}</span>
+	</div>
+	<div>
+		<span>Item Description:</span>
+		<span>{{search_params['itemDescription']|e}}</span>
+	</div>
+	<div>
+		<span>User ID:</span>
+		<span>{{search_params['userID']|e}}</span>
+	</div>
+	<div>
+		<span>Min Price:</span>
+		<span>{{search_params['minPrice']|e}}</span>
+	</div>
+	<div>
+		<span>Max Price:</span>
+		<span>{{search_params['itemID']|e}}</span>
+	</div>
+	<div>
+		<span>Status:</span>
+		<span>{{search_params['status']|e}}</span>
+	</div>
+{% endif %}
+
 <h3>Result</h3>
 <ul>
 {% if search_result %}
