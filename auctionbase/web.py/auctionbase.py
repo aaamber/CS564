@@ -285,7 +285,7 @@ class search:
         #DEBUG print messages
         print(searchQuery)
         print(searchSentence)
-        searchSentence=searchSentence
+        searchSentence=searchSentence + ' limit 10'
         #Create the transcation,query the db, return the search results based off query,update html.
         t = sqlitedb.transaction()
         try:

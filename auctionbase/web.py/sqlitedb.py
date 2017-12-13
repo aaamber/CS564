@@ -89,7 +89,7 @@ def isUserValid(user_id):
 
 def isItemValid(item_id):
     try:
-        query_string = 'select * from Items where ItemID = $item_id'
+        query_string = 'select * from Items where ItemID = $item_id limit 1'
         result = query(query_string, {'item_id': item_id})
         test = result[0]
         return True
@@ -98,7 +98,7 @@ def isItemValid(item_id):
 
 def isCategoryValid(category):
     try:
-        query_string = 'select * from Categories where Category = $category'
+        query_string = 'select * from Categories where Category = $category limit 1'
         result = query(query_string, {'category': category})
         test = result[0]
         return True
@@ -107,7 +107,7 @@ def isCategoryValid(category):
 
 def isMinPriceValid(minPrice):
     try:
-        query_string = 'select * from Items where Items.Currently >=$minPrice'
+        query_string = 'select * from Items where Items.Currently >=$minPrice limit 1'
         result = query(query_string, {'minPrice': minPrice})
         test = result[0]
         return True
@@ -116,7 +116,7 @@ def isMinPriceValid(minPrice):
 
 def isMaxPriceValid(maxPrice):
     try:
-        query_string = 'select * from Items where Items.Currently <=$maxPrice'
+        query_string = 'select * from Items where Items.Currently <=$maxPrice limit 1'
         result = query(query_string, {'maxPrice': maxPrice})
         test = result[0]
         return True
@@ -128,13 +128,13 @@ def isStatusValid(value,currentTimeString):
     try:
         #if we are looking for open items, check for the ending time greater than current
         if value == 'open':
-            query_string = 'select * from Items where Items.Ends>'+currentTimeString
+            query_string = 'select * from Items where Items.Ends>'+currentTimeString + ' limit 1'
         #if we are looking for closed items, check for the ending time less than current
         elif value == 'close':
-            query_string = 'select * from Items where Items.Ends<'+currentTimeString        
+            query_string = 'select * from Items where Items.Ends<'+currentTimeString + ' limit 1'    
         #if we are looking for not started items, check for the starting time greater than current
         elif value == 'notStarted':
-            query_string = 'select * from Items where Items.Started>'+currentTimeString
+            query_string = 'select * from Items where Items.Started>'+currentTimeString + ' limit 1'
         #otherwise all is the value, thus add no where clause
         else:
             return True
