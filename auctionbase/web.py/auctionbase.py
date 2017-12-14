@@ -84,9 +84,26 @@ class show_item:
     def POST(self):
         post_params = web.input()
         item_id = post_params['item_id']
-        # get item
+        # get bids
+        bid_result = sqlitedb.getBids(item_id)
         item = sqlitedb.getItemById(item_id)
-        return render_template('item.html', item = item)
+        categories = sqlitedb.getCategories(item_id)
+        current_time = sqlitedb.getTime()
+        if item['Buy_Price'] is not None:
+            buy_price = item['Buy_Price']
+        else:
+            buy_price = float('inf')
+
+        winner = None
+        # check status
+        if item['Ends'] > current_time and item['Currently'] < buy_price:
+            open = True
+        else:
+            if item['Number_of_Bids'] > 0: 
+                winner = sqlitedb.getWinner(item_id, item['Currently'])['UserID']
+            open = False
+
+        return render_template('item.html', bid_result = bid_result, item = item, categories = categories, open = open, winner = winner)
         
 
 class addbid:
@@ -97,9 +114,9 @@ class addbid:
     def POST(self):
         current_time = sqlitedb.getTime()
         post_params = web.input()
-        itemID = int(post_params['itemID'])
+        itemID = post_params['itemID']
         userID = post_params['userID']
-        price = float(post_params['price'])
+        price = post_params['price']
 
         
         if sqlitedb.isUserValid(userID):
@@ -284,9 +301,9 @@ class search:
 
         
         #DEBUG print messages
-        print(searchQuery)
-        print(searchSentence)
-        searchSentence=searchSentence + ' limit 10'
+        #print(searchQuery)
+        #print(searchSentence)
+        #searchSentence=searchSentence + ' limit 10'
         #Create the transcation,query the db, return the search results based off query,update html.
         t = sqlitedb.transaction()
         try:

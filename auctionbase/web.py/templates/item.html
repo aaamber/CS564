@@ -1,12 +1,59 @@
 {% extends "app_base.html" %}
 {% block content %}
 <h3>Item Details</h3> 
-{% if item != None %}
- 
+{% if item %}
+ <div class="alert alert-info">
+	{% for key in item %}
+		<div>
+			<label >{{ key|e }}</label>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<span>{{ item[key]|e }}</span>
+		</div>
+  	{% endfor %}
+ </div>
+ <div class="alert alert-info">
+ 	<div>
+ 	<label> Categories: </label>
+	{% for category in categories %}
+		{% for key in category %}
+			<span>{{ category[key]|e }} <b>|</b> </span>
+	  	{% endfor %}
+  	{% endfor %}
+    </div>
+	<div>
+  	<label> Status: </label> 
+	{% if open %}
+		Open until {{ item['Ends']|e }}
+	{% else %}
+		Closed
+		{% if winner %}
+			[ Winner is <label>{{ winner|e }}</label> ]
+		{% else %}
+			at {{ item['Ends']|e}}
+		{% endif%}
+  	{% endif %}
+  	</div>
+ </div>
+
 {% else %}
-  <div class="row">
-  	No match item
-  </div>
+<div class="alert alert-info">Item_Id is: </div>
 {% endif %}
+
+
+{% if bid_result %}
+<ul>
+	{% for result in bid_result %}
+		
+		<div><label>Name of the bidder: </label> {{ result['UserID']|e }}</div>
+		<div><label>The time of the bid: </label> {{ result['Time']|e }}</div>
+		<div><label>The price of the bid: </label> {{ result['Amount']|e }}</div>
+		
+	  	<div>--------</div>
+	{% endfor %}
+</ul>
+{% else %}
+<div class="alert alert-warning">No bid for current item</div>
+{% endif %}
+
 
 {% endblock %}

@@ -61,6 +61,33 @@ def query(query_string, vars = {}, update = False):
 #####################END HELPER METHODS#####################
 
 
+def getBids(item_id):
+    try:
+        query_string = 'select * from Bids where ItemID = $item_id'
+        result = query(query_string, {'item_id': item_id})
+        result[0]
+        return result
+    except:
+        return None
+
+def getWinner(item_id, current_price):
+    try:
+        query_string = 'select UserID from Bids where ItemID = $item_id and Amount = $price'
+        result = query(query_string, {'item_id': item_id, 'price': current_price})
+        result[0]
+        return result[0]
+    except:
+        return None
+
+def getCategories(item_id):
+    try:
+        query_string = 'select Category from Categories where ItemID = $item_id'
+        result = query(query_string, {'item_id': item_id})
+        result[0]
+        return result
+    except:
+        return None
+
 #TODO: additional methods to interact with your database,
 # e.g. to update the current time
 def isBidAlive(item_id):
@@ -77,20 +104,6 @@ def isBidAlive(item_id):
     elif(cur_bid_price<buy_price):
         priceCheck = True
 
-    #DEBUG print
-    print(buy_price)
-    print(priceCheck)
-    print(start_time <= cur_time)
-    print(cur_time)
-    print(end_time)
-    print(end_time >= cur_time)
-    # if start_time <= cur_time:
-    #     print('bigger than strat time')
-    # if end_time >= cur_time:
-    #     print('smaller than end time')
-    # if cur_bid_price < buy_price:
-    #     print('not buy out yet')
-    # exist = (start_time <= cur_time and end_time >= cur_time and cur_bid_price < buy_price)
     return (start_time <= cur_time and end_time >= cur_time and priceCheck)
 
 def isUserValid(user_id):
